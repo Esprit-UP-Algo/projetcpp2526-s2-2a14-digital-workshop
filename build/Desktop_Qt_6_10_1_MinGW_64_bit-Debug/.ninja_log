@@ -1,0 +1,25 @@
+# ninja log v6
+2905	8940	7920306135742481	CMakeFiles/interfaceG.dir/main.cpp.obj	a0ad817317ed539c
+13	2845	7920306133392133	C:/Users/arfao/OneDrive/Desktop/C++/interfaceG/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/interfaceG_autogen/timestamp	4f4240e42de71a19
+13	2845	7920306133392133	interfaceG_autogen/timestamp	4f4240e42de71a19
+2965	8858	7920306136290992	CMakeFiles/interfaceG.dir/mainwindow.cpp.obj	afa8ab48d6c7ab39
+13	2845	7920306133392133	interfaceG_autogen/mocs_compilation.cpp	4f4240e42de71a19
+2847	8347	7920306135156931	CMakeFiles/interfaceG.dir/interfaceG_autogen/mocs_compilation.cpp.obj	1c144f2afe410232
+13	2845	7920306133392133	C:/Users/arfao/OneDrive/Desktop/C++/interfaceG/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/interfaceG_autogen/mocs_compilation.cpp	4f4240e42de71a19
+9144	11811	7920306198111558	interfaceG.exe	9c3fb17b210a8194
+5	1383	7921135470689409	build.ninja	699e201caa26300f
+427	655	7918248406771423	interfaceG_autogen/EWIEGA46WW/qrc_ressources.cpp	90459bc4ec30baca
+427	655	7918248406771423	C:/Users/arfao/OneDrive/Desktop/C++/interfaceG/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/interfaceG_autogen/EWIEGA46WW/qrc_ressources.cpp	90459bc4ec30baca
+3091	9144	7920306137609599	CMakeFiles/interfaceG.dir/interfaceG_autogen/EWIEGA46WW/qrc_ressources.cpp.obj	b9836a6d892b5b9d
+3027	8269	7920306136964915	CMakeFiles/interfaceG.dir/login.cpp.obj	bcf9ea75e8a6c6bf
+32	881	7921135521878956	interfaceG_autogen/timestamp	4f4240e42de71a19
+32	881	7921135521878956	interfaceG_autogen/mocs_compilation.cpp	4f4240e42de71a19
+32	881	7921135521878956	C:/Users/arfao/OneDrive/Desktop/C++/interfaceG/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/interfaceG_autogen/timestamp	4f4240e42de71a19
+32	881	7921135521878956	C:/Users/arfao/OneDrive/Desktop/C++/interfaceG/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/interfaceG_autogen/mocs_compilation.cpp	4f4240e42de71a19
+883	6530	7921135525055508	CMakeFiles/interfaceG.dir/interfaceG_autogen/mocs_compilation.cpp.obj	1c144f2afe410232
+37	1100	7921136543439580	interfaceG_autogen/timestamp	4f4240e42de71a19
+37	1100	7921136543439580	interfaceG_autogen/mocs_compilation.cpp	4f4240e42de71a19
+37	1100	7921136543439580	C:/Users/arfao/OneDrive/Desktop/C++/interfaceG/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/interfaceG_autogen/timestamp	4f4240e42de71a19
+37	1100	7921136543439580	C:/Users/arfao/OneDrive/Desktop/C++/interfaceG/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/interfaceG_autogen/mocs_compilation.cpp	4f4240e42de71a19
+1102	7654	7921136554094875	CMakeFiles/interfaceG.dir/main.cpp.obj	a0ad817317ed539c
+7654	8809	7921136619608150	interfaceG.exe	95e98af0c82217ac
