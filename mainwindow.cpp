@@ -8,25 +8,38 @@
 #include <QApplication>
 #include <QFileDialog>
 #include <QTextDocument>
-#include <QPrinter>
 #include <QFile>
 #include <QTextStream>
 #include <QDate>
+#include <QLocale>
+#include <QColor>
+#include <QFont>
+#include <QDialog>
+#include <QFrame>
+#include <algorithm>
+
+#if QT_VERSION >= 0x050000
+#include <QtPrintSupport/QPrinter>
+#else
+#include <QPrinter>
+#endif
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
+    : QMainWindow(parent),
+    statsClientTotal(nullptr),
+    statsEnCours(nullptr),
+    statsTerminees(nullptr),
+    statsTable(nullptr)
 {
     setWindowTitle("Smart Menuiserie - Dashboard");
-    resize(1400, 800);
+    resize(1600, 900);
 
-    // ===== STYLE GLOBAL =====
     setStyleSheet(R"(
         QMainWindow {
             background-color: #f7fafc;
         }
     )");
 
-    // ===== WIDGET CENTRAL =====
     QWidget *centralWidget = new QWidget(this);
     setCentralWidget(centralWidget);
 
@@ -34,40 +47,25 @@ MainWindow::MainWindow(QWidget *parent)
     mainLayout->setSpacing(0);
     mainLayout->setContentsMargins(0, 0, 0, 0);
 
-    // ===== CRÉER LA SIDEBAR =====
     createSidebar();
-
-    // ===== STACKED WIDGET (pour changer les pages) =====
     stackedWidget = new QStackedWidget();
-
-    // Créer les différentes pages
     createListeClientsPage();
-    createListeCommandesPage();
-    createAjouterClientPage();
 
-    // Ajouter les pages au stackedWidget
-    stackedWidget->addWidget(pageListeClients);      // Index 0
-    stackedWidget->addWidget(pageListeCommandes);    // Index 1
-    stackedWidget->addWidget(pageAjouterClient);     // Index 2
-
-    // Afficher la liste des clients par défaut
+    createStatistiquesPage();
+    stackedWidget->addWidget(pageListeClients);
+    stackedWidget->addWidget(pageStatistiques);
     stackedWidget->setCurrentIndex(0);
-
     mainLayout->addWidget(stackedWidget);
 }
 
-// ===== CRÉER LA SIDEBAR =====
 void MainWindow::createSidebar()
 {
     QWidget *sidebar = new QWidget();
     sidebar->setFixedWidth(250);
     sidebar->setStyleSheet(R"(
         QWidget {
-            background: qlineargradient(
-                x1:0, y1:0, x2:0, y2:1,
-                stop:0 #1e3a8a,
-                stop:1 #1e40af
-            );
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #1e3a8a, stop:1 #1e40af);
         }
     )");
 
@@ -75,7 +73,6 @@ void MainWindow::createSidebar()
     sidebarLayout->setSpacing(5);
     sidebarLayout->setContentsMargins(15, 30, 15, 30);
 
-    // ===== LOGO / TITRE =====
     QLabel *logoLabel = new QLabel("🏢 Smart Menuiserie");
     logoLabel->setStyleSheet(R"(
         font-size: 20px;
@@ -86,10 +83,8 @@ void MainWindow::createSidebar()
     )");
     logoLabel->setAlignment(Qt::AlignCenter);
     sidebarLayout->addWidget(logoLabel);
-
     sidebarLayout->addSpacing(30);
 
-    // ===== STYLE DES BOUTONS =====
     QString buttonStyle = R"(
         QPushButton {
             background-color: rgba(255, 255, 255, 0.1);
@@ -109,28 +104,20 @@ void MainWindow::createSidebar()
         }
     )";
 
-    // ===== BOUTONS DE NAVIGATION =====
-    btnListeClients = new QPushButton("👥  Liste des Clients");
+    btnListeClients = new QPushButton("👥  Gestion Clients");
     btnListeClients->setStyleSheet(buttonStyle);
     btnListeClients->setCursor(Qt::PointingHandCursor);
     btnListeClients->setMinimumHeight(50);
     sidebarLayout->addWidget(btnListeClients);
 
-    btnListeCommandes = new QPushButton("📋  Liste des Commandes");
-    btnListeCommandes->setStyleSheet(buttonStyle);
-    btnListeCommandes->setCursor(Qt::PointingHandCursor);
-    btnListeCommandes->setMinimumHeight(50);
-    sidebarLayout->addWidget(btnListeCommandes);
-
-    btnAjouterClient = new QPushButton("➕  Ajouter un Client");
-    btnAjouterClient->setStyleSheet(buttonStyle);
-    btnAjouterClient->setCursor(Qt::PointingHandCursor);
-    btnAjouterClient->setMinimumHeight(50);
-    sidebarLayout->addWidget(btnAjouterClient);
+    btnStatistiques = new QPushButton("📊  Statistiques");
+    btnStatistiques->setStyleSheet(buttonStyle);
+    btnStatistiques->setCursor(Qt::PointingHandCursor);
+    btnStatistiques->setMinimumHeight(50);
+    sidebarLayout->addWidget(btnStatistiques);
 
     sidebarLayout->addStretch();
 
-    // ===== BOUTON DÉCONNEXION =====
     btnDeconnexion = new QPushButton("🚪  Déconnexion");
     btnDeconnexion->setStyleSheet(R"(
         QPushButton {
@@ -151,63 +138,306 @@ void MainWindow::createSidebar()
     btnDeconnexion->setMinimumHeight(50);
     sidebarLayout->addWidget(btnDeconnexion);
 
-    // ===== CONNEXIONS =====
     connect(btnListeClients, &QPushButton::clicked, this, &MainWindow::showListeClients);
-    connect(btnListeCommandes, &QPushButton::clicked, this, &MainWindow::showListeCommandes);
-    connect(btnAjouterClient, &QPushButton::clicked, this, &MainWindow::showAjouterClient);
+    connect(btnStatistiques, &QPushButton::clicked, this, &MainWindow::showStatistiques);
     connect(btnDeconnexion, &QPushButton::clicked, this, &MainWindow::onDeconnexion);
 
     centralWidget()->layout()->addWidget(sidebar);
 }
 
-// ===== PAGE LISTE DES CLIENTS =====
 void MainWindow::createListeClientsPage()
 {
     pageListeClients = new QWidget();
     pageListeClients->setStyleSheet("background-color: #f7fafc;");
 
-    QVBoxLayout *layout = new QVBoxLayout(pageListeClients);
-    layout->setContentsMargins(40, 40, 40, 40);
-    layout->setSpacing(25);
+    QHBoxLayout *mainLayout = new QHBoxLayout(pageListeClients);
+    mainLayout->setContentsMargins(20, 20, 20, 20);
+    mainLayout->setSpacing(20);
 
-    // Titre
-    QLabel *titleLabel = new QLabel("👥 Liste des Clients");
-    titleLabel->setStyleSheet(R"(
-        font-size: 32px;
-        font-weight: bold;
-        color: #1a202c;
-        background: transparent;
-    )");
-    layout->addWidget(titleLabel);
+    QWidget *leftPanel = new QWidget();
+    leftPanel->setFixedWidth(450);
+    leftPanel->setStyleSheet("QWidget { background-color: white; border-radius: 15px; }");
 
-    // ===== BARRE D'OUTILS (Recherche, Tri, Export) =====
-    QHBoxLayout *toolbarLayout = new QHBoxLayout();
-    toolbarLayout->setSpacing(15);
+    QVBoxLayout *leftLayout = new QVBoxLayout(leftPanel);
+    leftLayout->setContentsMargins(30, 30, 30, 30);
+    leftLayout->setSpacing(8);
 
-    // Recherche par ID
-    QLabel *searchLabel = new QLabel("🔍 Rechercher par ID:");
-    searchLabel->setStyleSheet("font-size: 14px; font-weight: 600; color: #2d3748; background: transparent;");
-    toolbarLayout->addWidget(searchLabel);
+    QLabel *formTitle = new QLabel("➕ Ajouter Client");
+    formTitle->setStyleSheet("font-size: 22px; font-weight: bold; color: #1e40af; background: transparent;");
+    leftLayout->addWidget(formTitle);
 
-    searchEdit = new QLineEdit();
-    searchEdit->setPlaceholderText("Entrez l'ID du client...");
-    searchEdit->setFixedWidth(200);
-    searchEdit->setStyleSheet(R"(
-        QLineEdit {
-            padding: 10px 15px;
+    QFrame *line = new QFrame();
+    line->setFrameShape(QFrame::HLine);
+    line->setStyleSheet("background-color: #e2e8f0;");
+    line->setFixedHeight(2);
+    leftLayout->addWidget(line);
+
+    leftLayout->addSpacing(10);
+
+    QString inputStyle = R"(
+        QLineEdit, QDateEdit {
+            padding: 12px 15px;
             border: 2px solid #e2e8f0;
             border-radius: 8px;
             font-size: 14px;
+            background-color: #f9fafb;
+            height: 42px;
+        }
+        QLineEdit:focus, QDateEdit:focus {
+            border: 2px solid #1e40af;
             background-color: white;
         }
-        QLineEdit:focus {
-            border: 2px solid #1e40af;
+    )";
+
+    QString labelStyle = "font-size: 13px; font-weight: 600; color: #374151; background: transparent; padding: 0px; margin: 0px;";
+
+    // ID Client
+    QLabel *lblId = new QLabel("ID Client *");
+    lblId->setStyleSheet(labelStyle);
+    lblId->setFixedHeight(20);
+    leftLayout->addWidget(lblId);
+
+    idEdit = new QLineEdit();
+    idEdit->setStyleSheet(inputStyle);
+    idEdit->setPlaceholderText("Ex: 123");
+    idEdit->setFixedHeight(42);
+    leftLayout->addWidget(idEdit);
+
+    // Nom
+    QLabel *lblNom = new QLabel("Nom *");
+    lblNom->setStyleSheet(labelStyle);
+    lblNom->setFixedHeight(20);
+    leftLayout->addWidget(lblNom);
+
+    nomEdit = new QLineEdit();
+    nomEdit->setStyleSheet(inputStyle);
+    nomEdit->setPlaceholderText("Ex: Ben Ali");
+    nomEdit->setFixedHeight(42);
+    leftLayout->addWidget(nomEdit);
+
+    // Prénom
+    QLabel *lblPrenom = new QLabel("Prénom *");
+    lblPrenom->setStyleSheet(labelStyle);
+    lblPrenom->setFixedHeight(20);
+    leftLayout->addWidget(lblPrenom);
+
+    prenomEdit = new QLineEdit();
+    prenomEdit->setStyleSheet(inputStyle);
+    prenomEdit->setPlaceholderText("Ex: Mohamed");
+    prenomEdit->setFixedHeight(42);
+    leftLayout->addWidget(prenomEdit);
+
+    // Email
+    QLabel *lblEmail = new QLabel("Email *");
+    lblEmail->setStyleSheet(labelStyle);
+    lblEmail->setFixedHeight(20);
+    leftLayout->addWidget(lblEmail);
+
+    emailEdit = new QLineEdit();
+    emailEdit->setStyleSheet(inputStyle);
+    emailEdit->setPlaceholderText("email@exemple.com");
+    emailEdit->setFixedHeight(42);
+    leftLayout->addWidget(emailEdit);
+
+    // Téléphone
+    QLabel *lblTel = new QLabel("Téléphone *");
+    lblTel->setStyleSheet(labelStyle);
+    lblTel->setFixedHeight(20);
+    leftLayout->addWidget(lblTel);
+
+    telEdit = new QLineEdit();
+    telEdit->setStyleSheet(inputStyle);
+    telEdit->setPlaceholderText("99123456");
+    telEdit->setFixedHeight(42);
+    leftLayout->addWidget(telEdit);
+
+    // Adresse
+    QLabel *lblAdresse = new QLabel("Adresse *");
+    lblAdresse->setStyleSheet(labelStyle);
+    lblAdresse->setFixedHeight(20);
+    leftLayout->addWidget(lblAdresse);
+
+    adresseEdit = new QLineEdit();
+    adresseEdit->setStyleSheet(inputStyle);
+    adresseEdit->setPlaceholderText("Tunis, Ariana");
+    adresseEdit->setFixedHeight(42);
+    leftLayout->addWidget(adresseEdit);
+
+    // Date inscription
+    QLabel *lblDate = new QLabel("Date inscription *");
+    lblDate->setStyleSheet(labelStyle);
+    lblDate->setFixedHeight(20);
+    leftLayout->addWidget(lblDate);
+
+    dateEdit = new QDateEdit();
+    dateEdit->setDate(QDate::currentDate());
+    dateEdit->setCalendarPopup(true);
+    dateEdit->setDisplayFormat("dd/MM/yyyy");
+    dateEdit->setStyleSheet(inputStyle);
+    dateEdit->setFixedHeight(42);
+    leftLayout->addWidget(dateEdit);
+
+    // Statut
+    QLabel *lblStatut = new QLabel("Statut *");
+    lblStatut->setStyleSheet(labelStyle);
+    lblStatut->setFixedHeight(20);
+    leftLayout->addWidget(lblStatut);
+
+    QWidget *statutWidget = new QWidget();
+    QHBoxLayout *statutLayout = new QHBoxLayout(statutWidget);
+    statutLayout->setContentsMargins(0, 0, 0, 0);
+    statutLayout->setSpacing(15);
+
+    statutGroup = new QButtonGroup(this);
+
+    radioEnCours = new QRadioButton("En Cours");
+    radioEnCours->setStyleSheet(R"(
+        QRadioButton {
+            font-size: 13px;
+            color: #374151;
+            background: transparent;
+            padding: 5px;
         }
+        QRadioButton::indicator { width: 18px; height: 18px; }
+        QRadioButton::indicator:checked {
+            background-color: #f59e0b;
+            border: 2px solid #f59e0b;
+            border-radius: 9px;
+        }
+        QRadioButton::indicator:unchecked {
+            background-color: white;
+            border: 2px solid #d1d5db;
+            border-radius: 9px;
+        }
+    )");
+    radioEnCours->setChecked(true);
+
+    radioTermine = new QRadioButton("Terminé");
+    radioTermine->setStyleSheet(R"(
+        QRadioButton {
+            font-size: 13px;
+            color: #374151;
+            background: transparent;
+            padding: 5px;
+        }
+        QRadioButton::indicator { width: 18px; height: 18px; }
+        QRadioButton::indicator:checked {
+            background-color: #10b981;
+            border: 2px solid #10b981;
+            border-radius: 9px;
+        }
+        QRadioButton::indicator:unchecked {
+            background-color: white;
+            border: 2px solid #d1d5db;
+            border-radius: 9px;
+        }
+    )");
+
+    radioEnAttente = new QRadioButton("Attente");
+    radioEnAttente->setStyleSheet(R"(
+        QRadioButton {
+            font-size: 13px;
+            color: #374151;
+            background: transparent;
+            padding: 5px;
+        }
+        QRadioButton::indicator { width: 18px; height: 18px; }
+        QRadioButton::indicator:checked {
+            background-color: #3b82f6;
+            border: 2px solid #3b82f6;
+            border-radius: 9px;
+        }
+        QRadioButton::indicator:unchecked {
+            background-color: white;
+            border: 2px solid #d1d5db;
+            border-radius: 9px;
+        }
+    )");
+
+    statutGroup->addButton(radioEnCours, 0);
+    statutGroup->addButton(radioTermine, 1);
+    statutGroup->addButton(radioEnAttente, 2);
+
+    statutLayout->addWidget(radioEnCours);
+    statutLayout->addWidget(radioTermine);
+    statutLayout->addWidget(radioEnAttente);
+    statutLayout->addStretch();
+
+    statutWidget->setFixedHeight(35);
+    leftLayout->addWidget(statutWidget);
+
+    leftLayout->addSpacing(15);
+
+    // Boutons
+    QHBoxLayout *btnLayout = new QHBoxLayout();
+
+    QPushButton *btnSubmit = new QPushButton("✓ Ajouter");
+    btnSubmit->setFixedHeight(45);
+    btnSubmit->setCursor(Qt::PointingHandCursor);
+    btnSubmit->setStyleSheet(R"(
+        QPushButton {
+            background-color: #10b981;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: bold;
+        }
+        QPushButton:hover { background-color: #059669; }
+    )");
+    connect(btnSubmit, &QPushButton::clicked, this, &MainWindow::onAjouterClientSubmit);
+
+    QPushButton *btnClear = new QPushButton("✗ Effacer");
+    btnClear->setFixedHeight(45);
+    btnClear->setCursor(Qt::PointingHandCursor);
+    btnClear->setStyleSheet(R"(
+        QPushButton {
+            background-color: #6b7280;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: bold;
+        }
+        QPushButton:hover { background-color: #4b5563; }
+    )");
+    connect(btnClear, &QPushButton::clicked, this, &MainWindow::onAnnulerAjout);
+
+    btnLayout->addWidget(btnSubmit);
+    btnLayout->addWidget(btnClear);
+    leftLayout->addLayout(btnLayout);
+
+    leftLayout->addStretch();
+
+    // Partie droite avec le tableau
+    QWidget *rightPanel = new QWidget();
+    QVBoxLayout *rightLayout = new QVBoxLayout(rightPanel);
+    rightLayout->setContentsMargins(0, 0, 0, 0);
+    rightLayout->setSpacing(15);
+
+    QLabel *listTitle = new QLabel("👥 Liste des Clients");
+    listTitle->setStyleSheet("font-size: 28px; font-weight: bold; color: #1a202c; background: transparent;");
+    rightLayout->addWidget(listTitle);
+
+    QHBoxLayout *toolbarLayout = new QHBoxLayout();
+    toolbarLayout->setSpacing(10);
+
+    searchEdit = new QLineEdit();
+    searchEdit->setPlaceholderText("🔍 Rechercher par ID...");
+    searchEdit->setFixedWidth(180);
+    searchEdit->setStyleSheet(R"(
+        QLineEdit {
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        QLineEdit:focus { border: 2px solid #1e40af; }
     )");
     toolbarLayout->addWidget(searchEdit);
 
     QPushButton *btnSearch = new QPushButton("Rechercher");
-    btnSearch->setFixedHeight(40);
+    btnSearch->setFixedHeight(35);
     btnSearch->setCursor(Qt::PointingHandCursor);
     btnSearch->setStyleSheet(R"(
         QPushButton {
@@ -215,7 +445,8 @@ void MainWindow::createListeClientsPage()
             color: white;
             border: none;
             border-radius: 8px;
-            padding: 0 20px;
+            padding: 0 15px;
+            font-size: 13px;
             font-weight: bold;
         }
         QPushButton:hover { background-color: #2563eb; }
@@ -223,43 +454,22 @@ void MainWindow::createListeClientsPage()
     connect(btnSearch, &QPushButton::clicked, this, &MainWindow::onSearchClient);
     toolbarLayout->addWidget(btnSearch);
 
-    toolbarLayout->addSpacing(30);
-
-    // Tri
-    QLabel *sortLabel = new QLabel("📊 Trier par:");
-    sortLabel->setStyleSheet("font-size: 14px; font-weight: 600; color: #2d3748; background: transparent;");
-    toolbarLayout->addWidget(sortLabel);
+    toolbarLayout->addSpacing(15);
 
     sortComboBox = new QComboBox();
-    sortComboBox->addItem("ID");
-    sortComboBox->addItem("Date");
-    sortComboBox->addItem("Commande");
-    sortComboBox->addItem("Statut");
+    sortComboBox->addItem("📊 Trier: ID");
+    sortComboBox->addItem("📊 Trier: Date");
+    sortComboBox->addItem("📊 Trier: Statut");
     sortComboBox->setFixedWidth(150);
     sortComboBox->setCursor(Qt::PointingHandCursor);
-    sortComboBox->setStyleSheet(R"(
-        QComboBox {
-            padding: 10px 15px;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            background-color: white;
-            font-size: 14px;
-        }
-        QComboBox:hover {
-            border: 2px solid #1e40af;
-        }
-        QComboBox::drop-down {
-            border: none;
-        }
-    )");
+    sortComboBox->setStyleSheet("QComboBox { padding: 8px 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 13px; }");
     connect(sortComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onSortClients);
     toolbarLayout->addWidget(sortComboBox);
 
     toolbarLayout->addStretch();
 
-    // Boutons Export
-    QPushButton *btnExportPDF = new QPushButton("📄 Export PDF");
-    btnExportPDF->setFixedHeight(40);
+    QPushButton *btnExportPDF = new QPushButton("📄 PDF");
+    btnExportPDF->setFixedHeight(35);
     btnExportPDF->setCursor(Qt::PointingHandCursor);
     btnExportPDF->setStyleSheet(R"(
         QPushButton {
@@ -267,7 +477,8 @@ void MainWindow::createListeClientsPage()
             color: white;
             border: none;
             border-radius: 8px;
-            padding: 0 20px;
+            padding: 0 15px;
+            font-size: 13px;
             font-weight: bold;
         }
         QPushButton:hover { background-color: #b91c1c; }
@@ -275,8 +486,8 @@ void MainWindow::createListeClientsPage()
     connect(btnExportPDF, &QPushButton::clicked, this, &MainWindow::onExportPDF);
     toolbarLayout->addWidget(btnExportPDF);
 
-    QPushButton *btnExportExcel = new QPushButton("📊 Export Excel");
-    btnExportExcel->setFixedHeight(40);
+    QPushButton *btnExportExcel = new QPushButton("📊 Excel");
+    btnExportExcel->setFixedHeight(35);
     btnExportExcel->setCursor(Qt::PointingHandCursor);
     btnExportExcel->setStyleSheet(R"(
         QPushButton {
@@ -284,7 +495,8 @@ void MainWindow::createListeClientsPage()
             color: white;
             border: none;
             border-radius: 8px;
-            padding: 0 20px;
+            padding: 0 15px;
+            font-size: 13px;
             font-weight: bold;
         }
         QPushButton:hover { background-color: #047857; }
@@ -292,13 +504,12 @@ void MainWindow::createListeClientsPage()
     connect(btnExportExcel, &QPushButton::clicked, this, &MainWindow::onExportExcel);
     toolbarLayout->addWidget(btnExportExcel);
 
-    layout->addLayout(toolbarLayout);
+    rightLayout->addLayout(toolbarLayout);
 
-    // Tableau
     tableClients = new QTableWidget();
-    tableClients->setColumnCount(10);
+    tableClients->setColumnCount(9);
     tableClients->setHorizontalHeaderLabels({
-        "ID", "Nom", "Prénom", "Email", "Téléphone", "Adresse", "Date", "Commande", "Statut", "Actions"
+        "ID", "Nom", "Prénom", "Email", "Téléphone", "Adresse", "Date", "Statut", "Actions"
     });
 
     tableClients->setStyleSheet(R"(
@@ -311,13 +522,13 @@ void MainWindow::createListeClientsPage()
         QHeaderView::section {
             background-color: #1e40af;
             color: white;
-            padding: 12px;
+            padding: 10px;
             border: none;
             font-weight: bold;
-            font-size: 14px;
+            font-size: 13px;
         }
         QTableWidget::item {
-            padding: 10px;
+            padding: 8px;
             border-bottom: 1px solid #e2e8f0;
         }
         QTableWidget::item:selected {
@@ -331,198 +542,192 @@ void MainWindow::createListeClientsPage()
     tableClients->setEditTriggers(QAbstractItemView::NoEditTriggers);
     tableClients->setAlternatingRowColors(true);
 
-    // ===== AJUSTER LA LARGEUR DES COLONNES =====
-    tableClients->setColumnWidth(0, 80);   // ID
-    tableClients->setColumnWidth(1, 120);  // Nom
-    tableClients->setColumnWidth(2, 120);  // Prénom
-    tableClients->setColumnWidth(3, 200);  // Email (plus large)
-    tableClients->setColumnWidth(4, 120);  // Téléphone
-    tableClients->setColumnWidth(5, 200);  // Adresse (plus large)
-    tableClients->setColumnWidth(6, 120);  // Date
-    tableClients->setColumnWidth(7, 150);  // Commande
-    tableClients->setColumnWidth(8, 100);  // Statut
-    tableClients->setColumnWidth(9, 240);  // Actions (plus large pour 2 boutons)
+    tableClients->setColumnWidth(0, 70);
+    tableClients->setColumnWidth(1, 120);
+    tableClients->setColumnWidth(2, 120);
+    tableClients->setColumnWidth(3, 200);
+    tableClients->setColumnWidth(4, 130);
+    tableClients->setColumnWidth(5, 180);
+    tableClients->setColumnWidth(6, 120);
+    tableClients->setColumnWidth(7, 110);
+    tableClients->setColumnWidth(8, 220);
 
-    layout->addWidget(tableClients);
+    rightLayout->addWidget(tableClients);
+
+    mainLayout->addWidget(leftPanel);
+    mainLayout->addWidget(rightPanel);
 }
 
-// ===== PAGE LISTE DES COMMANDES =====
-void MainWindow::createListeCommandesPage()
+
+
+void MainWindow::createStatistiquesPage()
 {
-    pageListeCommandes = new QWidget();
-    pageListeCommandes->setStyleSheet("background-color: #f7fafc;");
+    pageStatistiques = new QWidget();
+    pageStatistiques->setStyleSheet("background-color: #f7fafc;");
 
-    QVBoxLayout *layout = new QVBoxLayout(pageListeCommandes);
+    QVBoxLayout *layout = new QVBoxLayout(pageStatistiques);
     layout->setContentsMargins(40, 40, 40, 40);
+    layout->setSpacing(30);
 
-    QLabel *titleLabel = new QLabel("📋 Liste des Commandes");
-    titleLabel->setStyleSheet(R"(
-        font-size: 32px;
-        font-weight: bold;
-        color: #1a202c;
-        background: transparent;
-    )");
-    layout->addWidget(titleLabel);
+    QHBoxLayout *titleLayout = new QHBoxLayout();
 
-    QLabel *infoLabel = new QLabel("Cette section affichera la liste des commandes.");
-    infoLabel->setStyleSheet(R"(
-        font-size: 16px;
-        color: #718096;
-        background: transparent;
-        margin-top: 20px;
+    QLabel *titleLabel = new QLabel("📊 Statistiques - Tableau de Bord");
+    titleLabel->setStyleSheet("font-size: 32px; font-weight: bold; color: #1a202c; background: transparent;");
+    titleLayout->addWidget(titleLabel);
+    titleLayout->addStretch();
+
+    QPushButton *btnGraphique = new QPushButton("📊 Clients par Date");
+    btnGraphique->setFixedSize(200, 45);
+    btnGraphique->setCursor(Qt::PointingHandCursor);
+    btnGraphique->setStyleSheet(R"(
+        QPushButton {
+            background-color: #8b5cf6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: bold;
+        }
+        QPushButton:hover { background-color: #7c3aed; }
     )");
+    connect(btnGraphique, &QPushButton::clicked, this, &MainWindow::onShowGraphique);
+    titleLayout->addWidget(btnGraphique);
+
+    layout->addLayout(titleLayout);
+
+    QHBoxLayout *cardsLayout = new QHBoxLayout();
+    cardsLayout->setSpacing(20);
+
+    QWidget *card1 = new QWidget();
+    card1->setStyleSheet("QWidget { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #667eea, stop:1 #764ba2); border-radius: 15px; }");
+    card1->setMinimumHeight(150);
+
+    QVBoxLayout *card1Layout = new QVBoxLayout(card1);
+    QLabel *card1Title = new QLabel("👥 Total Clients");
+    card1Title->setStyleSheet("font-size: 18px; color: white; background: transparent; font-weight: bold;");
+    statsClientTotal = new QLabel(QString::number(tableClients->rowCount()));
+    statsClientTotal->setStyleSheet("font-size: 48px; color: white; background: transparent; font-weight: bold;");
+    card1Layout->addWidget(card1Title);
+    card1Layout->addWidget(statsClientTotal);
+    card1Layout->addStretch();
+
+    QWidget *card2 = new QWidget();
+    card2->setStyleSheet("QWidget { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #f093fb, stop:1 #f5576c); border-radius: 15px; }");
+    card2->setMinimumHeight(150);
+
+    QVBoxLayout *card2Layout = new QVBoxLayout(card2);
+    QLabel *card2Title = new QLabel("📦 En Cours");
+    card2Title->setStyleSheet("font-size: 18px; color: white; background: transparent; font-weight: bold;");
+
+    int enCours = 0;
+    for (int i = 0; i < tableClients->rowCount(); ++i) {
+        if (tableClients->item(i, 7) && tableClients->item(i, 7)->text().toLower().contains("cours")) {
+            enCours++;
+        }
+    }
+
+    statsEnCours = new QLabel(QString::number(enCours));
+    statsEnCours->setStyleSheet("font-size: 48px; color: white; background: transparent; font-weight: bold;");
+    card2Layout->addWidget(card2Title);
+    card2Layout->addWidget(statsEnCours);
+    card2Layout->addStretch();
+
+    QWidget *card3 = new QWidget();
+    card3->setStyleSheet("QWidget { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #4facfe, stop:1 #00f2fe); border-radius: 15px; }");
+    card3->setMinimumHeight(150);
+
+    QVBoxLayout *card3Layout = new QVBoxLayout(card3);
+    QLabel *card3Title = new QLabel("✅ Terminées");
+    card3Title->setStyleSheet("font-size: 18px; color: white; background: transparent; font-weight: bold;");
+
+    int terminees = 0;
+    for (int i = 0; i < tableClients->rowCount(); ++i) {
+        if (tableClients->item(i, 7) &&
+            (tableClients->item(i, 7)->text().toLower().contains("terminé") ||
+             tableClients->item(i, 7)->text().toLower().contains("livré"))) {
+            terminees++;
+        }
+    }
+
+    statsTerminees = new QLabel(QString::number(terminees));
+    statsTerminees->setStyleSheet("font-size: 48px; color: white; background: transparent; font-weight: bold;");
+    card3Layout->addWidget(card3Title);
+    card3Layout->addWidget(statsTerminees);
+    card3Layout->addStretch();
+
+    cardsLayout->addWidget(card1);
+    cardsLayout->addWidget(card2);
+    cardsLayout->addWidget(card3);
+    layout->addLayout(cardsLayout);
+
+    QWidget *graphCard = new QWidget();
+    graphCard->setStyleSheet("QWidget { background-color: white; border-radius: 15px; }");
+
+    QVBoxLayout *graphLayout = new QVBoxLayout(graphCard);
+    graphLayout->setContentsMargins(30, 30, 30, 30);
+
+    QLabel *graphTitle = new QLabel("📈 Répartition des Statuts");
+    graphTitle->setStyleSheet("font-size: 24px; font-weight: bold; color: #1a202c; background: transparent;");
+    graphLayout->addWidget(graphTitle);
+
+    statsTable = new QTableWidget();
+    statsTable->setColumnCount(3);
+    statsTable->setHorizontalHeaderLabels({"Statut", "Nombre", "Pourcentage"});
+    statsTable->setStyleSheet(R"(
+        QTableWidget {
+            background-color: transparent;
+            border: none;
+            gridline-color: #e2e8f0;
+        }
+        QHeaderView::section {
+            background-color: #1e40af;
+            color: white;
+            padding: 10px;
+            border: none;
+            font-weight: bold;
+        }
+        QTableWidget::item { padding: 8px; }
+    )");
+
+    QMap<QString, int> statutCounts;
+    int total = tableClients->rowCount();
+
+    for (int i = 0; i < total; ++i) {
+        if (tableClients->item(i, 7)) {
+            QString statut = tableClients->item(i, 7)->text();
+            statutCounts[statut]++;
+        }
+    }
+
+    statsTable->setRowCount(statutCounts.size());
+    int row = 0;
+    for (auto it = statutCounts.begin(); it != statutCounts.end(); ++it) {
+        statsTable->setItem(row, 0, new QTableWidgetItem(it.key()));
+        statsTable->setItem(row, 1, new QTableWidgetItem(QString::number(it.value())));
+        double percentage = (total > 0) ? (it.value() * 100.0 / total) : 0;
+        statsTable->setItem(row, 2, new QTableWidgetItem(QString::number(percentage, 'f', 1) + "%"));
+        row++;
+    }
+
+    statsTable->horizontalHeader()->setStretchLastSection(true);
+    statsTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    statsTable->setMaximumHeight(300);
+
+    graphLayout->addWidget(statsTable);
+    layout->addWidget(graphCard);
+
+    QLabel *infoLabel = new QLabel(R"(
+        <p style='color: #718096; font-size: 14px;'>
+        💡 <b>Note:</b> Statistiques en temps réel<br>
+        📅 <b>Période:</b> Toutes les données<br>
+        🔄 <b>Mise à jour:</b> Automatique
+        </p>
+    )");
+    infoLabel->setStyleSheet("background: transparent;");
     layout->addWidget(infoLabel);
-
     layout->addStretch();
 }
 
-// ===== PAGE AJOUTER UN CLIENT =====
-void MainWindow::createAjouterClientPage()
-{
-    pageAjouterClient = new QWidget();
-    pageAjouterClient->setStyleSheet("background-color: #f7fafc;");
-
-    QVBoxLayout *layout = new QVBoxLayout(pageAjouterClient);
-    layout->setContentsMargins(40, 40, 40, 40);
-    layout->setSpacing(25);
-
-    // Titre
-    QLabel *titleLabel = new QLabel("➕ Ajouter un Nouveau Client");
-    titleLabel->setStyleSheet(R"(
-        font-size: 32px;
-        font-weight: bold;
-        color: #1a202c;
-        background: transparent;
-    )");
-    layout->addWidget(titleLabel);
-
-    // Carte du formulaire
-    QWidget *formCard = new QWidget();
-    formCard->setStyleSheet(R"(
-        QWidget {
-            background-color: white;
-            border-radius: 15px;
-        }
-    )");
-
-    QVBoxLayout *cardLayout = new QVBoxLayout(formCard);
-    cardLayout->setContentsMargins(40, 40, 40, 40);
-    cardLayout->setSpacing(20);
-
-    // Formulaire
-    QFormLayout *formLayout = new QFormLayout();
-    formLayout->setSpacing(15);
-    formLayout->setLabelAlignment(Qt::AlignRight);
-
-    QString inputStyle = R"(
-        QLineEdit, QDateEdit {
-            padding: 12px 15px;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 14px;
-            background-color: #f7fafc;
-        }
-        QLineEdit:focus, QDateEdit:focus {
-            border: 2px solid #1e40af;
-            background-color: white;
-        }
-    )";
-
-    idEdit = new QLineEdit();
-    idEdit->setStyleSheet(inputStyle);
-    formLayout->addRow(new QLabel("ID Client:"), idEdit);
-
-    nomEdit = new QLineEdit();
-    nomEdit->setStyleSheet(inputStyle);
-    formLayout->addRow(new QLabel("Nom:"), nomEdit);
-
-    prenomEdit = new QLineEdit();
-    prenomEdit->setStyleSheet(inputStyle);
-    formLayout->addRow(new QLabel("Prénom:"), prenomEdit);
-
-    emailEdit = new QLineEdit();
-    emailEdit->setStyleSheet(inputStyle);
-    formLayout->addRow(new QLabel("Email:"), emailEdit);
-
-    telEdit = new QLineEdit();
-    telEdit->setStyleSheet(inputStyle);
-    formLayout->addRow(new QLabel("Téléphone:"), telEdit);
-
-    adresseEdit = new QLineEdit();
-    adresseEdit->setStyleSheet(inputStyle);
-    formLayout->addRow(new QLabel("Adresse:"), adresseEdit);
-
-    // ===== CALENDRIER POUR LA DATE =====
-    dateEdit = new QDateEdit();
-    dateEdit->setDate(QDate::currentDate());
-    dateEdit->setCalendarPopup(true);  // Affiche un calendrier
-    dateEdit->setDisplayFormat("dd/MM/yyyy");
-    dateEdit->setStyleSheet(inputStyle);
-    formLayout->addRow(new QLabel("Date inscription:"), dateEdit);
-
-    commandeEdit = new QLineEdit();
-    commandeEdit->setStyleSheet(inputStyle);
-    formLayout->addRow(new QLabel("Commande:"), commandeEdit);
-
-    statutEdit = new QLineEdit();
-    statutEdit->setStyleSheet(inputStyle);
-    formLayout->addRow(new QLabel("Statut:"), statutEdit);
-
-    cardLayout->addLayout(formLayout);
-
-    // Boutons
-    QHBoxLayout *btnLayout = new QHBoxLayout();
-    btnLayout->addStretch();
-
-    QPushButton *btnSubmit = new QPushButton("✓ Ajouter le Client");
-    btnSubmit->setFixedSize(180, 45);
-    btnSubmit->setCursor(Qt::PointingHandCursor);
-    btnSubmit->setStyleSheet(R"(
-        QPushButton {
-            background-color: #10b981;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 15px;
-            font-weight: bold;
-        }
-        QPushButton:hover {
-            background-color: #059669;
-        }
-    )");
-
-    QPushButton *btnCancel = new QPushButton("✗ Annuler");
-    btnCancel->setFixedSize(120, 45);
-    btnCancel->setCursor(Qt::PointingHandCursor);
-    btnCancel->setStyleSheet(R"(
-        QPushButton {
-            background-color: #6b7280;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 15px;
-            font-weight: bold;
-        }
-        QPushButton:hover {
-            background-color: #4b5563;
-        }
-    )");
-
-    btnLayout->addWidget(btnSubmit);
-    btnLayout->addWidget(btnCancel);
-
-    cardLayout->addSpacing(20);
-    cardLayout->addLayout(btnLayout);
-
-    layout->addWidget(formCard);
-    layout->addStretch();
-
-    // Connexions
-    connect(btnSubmit, &QPushButton::clicked, this, &MainWindow::onAjouterClientSubmit);
-    connect(btnCancel, &QPushButton::clicked, this, &MainWindow::onAnnulerAjout);
-}
-
-// ===== CRÉER LES BOUTONS D'ACTION =====
 QWidget* MainWindow::createActionButtons(int row)
 {
     QWidget *widget = new QWidget();
@@ -571,7 +776,6 @@ QWidget* MainWindow::createActionButtons(int row)
     return widget;
 }
 
-// ===== NAVIGATION =====
 void MainWindow::showListeClients()
 {
     stackedWidget->setCurrentIndex(0);
@@ -579,12 +783,13 @@ void MainWindow::showListeClients()
 
 void MainWindow::showListeCommandes()
 {
-    stackedWidget->setCurrentIndex(1);
+    // Fonction supprimée - Liste Commandes n'existe plus
 }
 
-void MainWindow::showAjouterClient()
+void MainWindow::showStatistiques()
 {
-    stackedWidget->setCurrentIndex(2);
+    updateStatistiques();
+    stackedWidget->setCurrentIndex(1);
 }
 
 void MainWindow::onDeconnexion()
@@ -593,65 +798,53 @@ void MainWindow::onDeconnexion()
     reply = QMessageBox::question(this, "Déconnexion",
                                   "Voulez-vous vraiment vous déconnecter ?",
                                   QMessageBox::Yes | QMessageBox::No);
-
     if (reply == QMessageBox::Yes) {
         qApp->quit();
     }
 }
 
-// ===== AJOUTER UN CLIENT =====
 void MainWindow::onAjouterClientSubmit()
 {
-    // ===== CONTRÔLE DE SAISIE =====
     if (idEdit->text().trimmed().isEmpty()) {
         QMessageBox::warning(this, "Champ manquant", "⚠️ Le champ ID Client est obligatoire !");
         idEdit->setFocus();
         return;
     }
-
     if (nomEdit->text().trimmed().isEmpty()) {
         QMessageBox::warning(this, "Champ manquant", "⚠️ Le champ Nom est obligatoire !");
         nomEdit->setFocus();
         return;
     }
-
     if (prenomEdit->text().trimmed().isEmpty()) {
         QMessageBox::warning(this, "Champ manquant", "⚠️ Le champ Prénom est obligatoire !");
         prenomEdit->setFocus();
         return;
     }
-
     if (emailEdit->text().trimmed().isEmpty()) {
         QMessageBox::warning(this, "Champ manquant", "⚠️ Le champ Email est obligatoire !");
         emailEdit->setFocus();
         return;
     }
-
     if (telEdit->text().trimmed().isEmpty()) {
         QMessageBox::warning(this, "Champ manquant", "⚠️ Le champ Téléphone est obligatoire !");
         telEdit->setFocus();
         return;
     }
-
     if (adresseEdit->text().trimmed().isEmpty()) {
         QMessageBox::warning(this, "Champ manquant", "⚠️ Le champ Adresse est obligatoire !");
         adresseEdit->setFocus();
         return;
     }
 
-    if (commandeEdit->text().trimmed().isEmpty()) {
-        QMessageBox::warning(this, "Champ manquant", "⚠️ Le champ Commande est obligatoire !");
-        commandeEdit->setFocus();
-        return;
+    QString statut;
+    if (radioEnCours->isChecked()) {
+        statut = "En Cours";
+    } else if (radioTermine->isChecked()) {
+        statut = "Terminé";
+    } else if (radioEnAttente->isChecked()) {
+        statut = "En Attente";
     }
 
-    if (statutEdit->text().trimmed().isEmpty()) {
-        QMessageBox::warning(this, "Champ manquant", "⚠️ Le champ Statut est obligatoire !");
-        statutEdit->setFocus();
-        return;
-    }
-
-    // Si tous les champs sont remplis, ajouter le client
     int row = tableClients->rowCount();
     tableClients->insertRow(row);
 
@@ -662,13 +855,12 @@ void MainWindow::onAjouterClientSubmit()
     tableClients->setItem(row, 4, new QTableWidgetItem(telEdit->text().trimmed()));
     tableClients->setItem(row, 5, new QTableWidgetItem(adresseEdit->text().trimmed()));
     tableClients->setItem(row, 6, new QTableWidgetItem(dateEdit->date().toString("dd/MM/yyyy")));
-    tableClients->setItem(row, 7, new QTableWidgetItem(commandeEdit->text().trimmed()));
-    tableClients->setItem(row, 8, new QTableWidgetItem(statutEdit->text().trimmed()));
-    tableClients->setCellWidget(row, 9, createActionButtons(row));
+    tableClients->setItem(row, 7, new QTableWidgetItem(statut));
+    tableClients->setCellWidget(row, 8, createActionButtons(row));
 
     QMessageBox::information(this, "Succès", "✅ Client ajouté avec succès !");
     onAnnulerAjout();
-    showListeClients();
+    tableClients->scrollToBottom();
 }
 
 void MainWindow::onAnnulerAjout()
@@ -680,8 +872,7 @@ void MainWindow::onAnnulerAjout()
     telEdit->clear();
     adresseEdit->clear();
     dateEdit->setDate(QDate::currentDate());
-    commandeEdit->clear();
-    statutEdit->clear();
+    radioEnCours->setChecked(true);
 }
 
 void MainWindow::onEditClient(int row)
@@ -693,11 +884,18 @@ void MainWindow::onEditClient(int row)
     telEdit->setText(tableClients->item(row, 4)->text());
     adresseEdit->setText(tableClients->item(row, 5)->text());
     dateEdit->setDate(QDate::fromString(tableClients->item(row, 6)->text(), "dd/MM/yyyy"));
-    commandeEdit->setText(tableClients->item(row, 7)->text());
-    statutEdit->setText(tableClients->item(row, 8)->text());
+
+    QString statut = tableClients->item(row, 7)->text();
+    if (statut.contains("Cours")) {
+        radioEnCours->setChecked(true);
+    } else if (statut.contains("Terminé") || statut.contains("Livré")) {
+        radioTermine->setChecked(true);
+    } else {
+        radioEnAttente->setChecked(true);
+    }
 
     tableClients->removeRow(row);
-    showAjouterClient();
+    idEdit->setFocus();
 }
 
 void MainWindow::onDeleteClient(int row)
@@ -706,23 +904,19 @@ void MainWindow::onDeleteClient(int row)
     reply = QMessageBox::question(this, "Confirmation",
                                   "Voulez-vous vraiment supprimer ce client ?",
                                   QMessageBox::Yes | QMessageBox::No);
-
     if (reply == QMessageBox::Yes) {
         tableClients->removeRow(row);
     }
 }
 
-// ===== RECHERCHE CLIENT PAR ID =====
 void MainWindow::onSearchClient()
 {
     QString searchId = searchEdit->text().trimmed();
-
     if (searchId.isEmpty()) {
-        QMessageBox::information(this, "Recherche", "Veuillez entrer un ID pour rechercher.");
+        QMessageBox::information(this, "Recherche", "Veuillez entrer un ID.");
         return;
     }
 
-    // Parcourir le tableau pour trouver l'ID
     bool found = false;
     for (int i = 0; i < tableClients->rowCount(); ++i) {
         if (tableClients->item(i, 0)->text() == searchId) {
@@ -738,25 +932,69 @@ void MainWindow::onSearchClient()
     }
 }
 
-// ===== TRI DES CLIENTS =====
 void MainWindow::onSortClients()
 {
-    int column = 0;  // Par défaut, trier par ID
-
     QString sortBy = sortComboBox->currentText();
-    if (sortBy == "ID") column = 0;
-    else if (sortBy == "Date") column = 6;
-    else if (sortBy == "Commande") column = 7;
-    else if (sortBy == "Statut") column = 8;
 
-    tableClients->sortItems(column, Qt::AscendingOrder);
+    if (sortBy == "📊 Trier: Date") {
+        QList<QPair<QDate, int>> dateList;
+
+        for (int i = 0; i < tableClients->rowCount(); ++i) {
+            if (tableClients->item(i, 6)) {
+                QString dateStr = tableClients->item(i, 6)->text();
+                QDate date = QDate::fromString(dateStr, "dd/MM/yyyy");
+                dateList.append(qMakePair(date, i));
+            }
+        }
+
+        std::sort(dateList.begin(), dateList.end(),
+                  [](const QPair<QDate, int> &a, const QPair<QDate, int> &b) {
+                      return a.first < b.first;
+                  });
+
+        QList<QList<QTableWidgetItem*>> rows;
+
+        for (int i = 0; i < tableClients->rowCount(); ++i) {
+            QList<QTableWidgetItem*> row;
+            for (int col = 0; col < 8; ++col) {
+                QTableWidgetItem *item = tableClients->item(i, col);
+                row.append(item ? item->clone() : nullptr);
+            }
+            rows.append(row);
+        }
+
+        tableClients->setRowCount(0);
+
+        for (int i = 0; i < dateList.size(); ++i) {
+            int originalRow = dateList[i].second;
+            tableClients->insertRow(i);
+
+            for (int col = 0; col < 8; ++col) {
+                if (rows[originalRow][col]) {
+                    tableClients->setItem(i, col, rows[originalRow][col]->clone());
+                }
+            }
+
+            tableClients->setCellWidget(i, 8, createActionButtons(i));
+        }
+
+    } else {
+        int column = 0;
+
+        if (sortBy == "📊 Trier: ID") column = 0;
+        else if (sortBy == "📊 Trier: Statut") column = 7;
+
+        tableClients->sortItems(column, Qt::AscendingOrder);
+
+        for (int row = 0; row < tableClients->rowCount(); ++row) {
+            tableClients->setCellWidget(row, 8, createActionButtons(row));
+        }
+    }
 }
 
-// ===== EXPORT PDF =====
 void MainWindow::onExportPDF()
 {
     QString fileName = QFileDialog::getSaveFileName(this, "Exporter en PDF", "", "PDF Files (*.pdf)");
-
     if (fileName.isEmpty()) return;
 
     QPrinter printer(QPrinter::HighResolution);
@@ -768,11 +1006,11 @@ void MainWindow::onExportPDF()
     html += "<table border='1' cellspacing='0' cellpadding='5' width='100%'>";
     html += "<tr style='background-color:#1e40af; color:white;'>";
     html += "<th>ID</th><th>Nom</th><th>Prénom</th><th>Email</th><th>Téléphone</th>";
-    html += "<th>Adresse</th><th>Date</th><th>Commande</th><th>Statut</th></tr>";
+    html += "<th>Adresse</th><th>Date</th><th>Statut</th></tr>";
 
     for (int row = 0; row < tableClients->rowCount(); ++row) {
         html += "<tr>";
-        for (int col = 0; col < 9; ++col) {
+        for (int col = 0; col < 8; ++col) {
             html += "<td>" + tableClients->item(row, col)->text() + "</td>";
         }
         html += "</tr>";
@@ -785,11 +1023,9 @@ void MainWindow::onExportPDF()
     QMessageBox::information(this, "Export PDF", "✅ Export PDF réussi !");
 }
 
-// ===== EXPORT EXCEL (CSV) =====
 void MainWindow::onExportExcel()
 {
     QString fileName = QFileDialog::getSaveFileName(this, "Exporter en Excel", "", "CSV Files (*.csv)");
-
     if (fileName.isEmpty()) return;
 
     QFile file(fileName);
@@ -799,15 +1035,12 @@ void MainWindow::onExportExcel()
     }
 
     QTextStream out(&file);
+    out << "ID,Nom,Prénom,Email,Téléphone,Adresse,Date,Statut\n";
 
-    // En-têtes
-    out << "ID,Nom,Prénom,Email,Téléphone,Adresse,Date,Commande,Statut\n";
-
-    // Données
     for (int row = 0; row < tableClients->rowCount(); ++row) {
-        for (int col = 0; col < 9; ++col) {
+        for (int col = 0; col < 8; ++col) {
             out << tableClients->item(row, col)->text();
-            if (col < 8) out << ",";
+            if (col < 7) out << ",";
         }
         out << "\n";
     }
@@ -818,7 +1051,199 @@ void MainWindow::onExportExcel()
 
 void MainWindow::refreshClientTable()
 {
-    // Fonction pour rafraîchir le tableau si nécessaire
+}
+
+void MainWindow::updateStatistiques()
+{
+    if (!statsClientTotal || !statsEnCours || !statsTerminees || !statsTable) {
+        return;
+    }
+
+    statsClientTotal->setText(QString::number(tableClients->rowCount()));
+
+    int enCours = 0;
+    for (int i = 0; i < tableClients->rowCount(); ++i) {
+        if (tableClients->item(i, 7) &&
+            tableClients->item(i, 7)->text().toLower().contains("cours")) {
+            enCours++;
+        }
+    }
+    statsEnCours->setText(QString::number(enCours));
+
+    int terminees = 0;
+    for (int i = 0; i < tableClients->rowCount(); ++i) {
+        if (tableClients->item(i, 7) &&
+            (tableClients->item(i, 7)->text().toLower().contains("terminé") ||
+             tableClients->item(i, 7)->text().toLower().contains("livré"))) {
+            terminees++;
+        }
+    }
+    statsTerminees->setText(QString::number(terminees));
+
+    QMap<QString, int> statutCounts;
+    int total = tableClients->rowCount();
+
+    for (int i = 0; i < total; ++i) {
+        if (tableClients->item(i, 7)) {
+            QString statut = tableClients->item(i, 7)->text();
+            statutCounts[statut]++;
+        }
+    }
+
+    statsTable->setRowCount(statutCounts.size());
+    int row = 0;
+    for (auto it = statutCounts.begin(); it != statutCounts.end(); ++it) {
+        statsTable->setItem(row, 0, new QTableWidgetItem(it.key()));
+        statsTable->setItem(row, 1, new QTableWidgetItem(QString::number(it.value())));
+        double percentage = (total > 0) ? (it.value() * 100.0 / total) : 0;
+        statsTable->setItem(row, 2, new QTableWidgetItem(QString::number(percentage, 'f', 1) + "%"));
+        row++;
+    }
+}
+
+void MainWindow::loadCommandesFromClients()
+{
+    // Fonction supprimée - Liste Commandes n'existe plus
+}
+
+void MainWindow::onFilterCommandes()
+{
+    // Fonction supprimée - Liste Commandes n'existe plus
+}
+
+void MainWindow::onRefreshCommandes()
+{
+    // Fonction supprimée - Liste Commandes n'existe plus
+}
+
+void MainWindow::onShowGraphique()
+{
+    // Collecte des données par mois/année
+    QMap<QString, int> clientsParMois;
+
+    for (int i = 0; i < tableClients->rowCount(); ++i) {
+        if (tableClients->item(i, 6)) {
+            QString dateStr = tableClients->item(i, 6)->text();
+            QDate date = QDate::fromString(dateStr, "dd/MM/yyyy");
+
+            if (date.isValid()) {
+                // Format: "Mois Année" (ex: "Janvier 2026")
+                QLocale locale(QLocale::French);
+                QString moisAnnee = QString("%1 %2")
+                                        .arg(locale.monthName(date.month(), QLocale::LongFormat))
+                                        .arg(date.year());
+
+                clientsParMois[moisAnnee]++;
+            }
+        }
+    }
+
+    QDialog *graphDialog = new QDialog(this);
+    graphDialog->setWindowTitle("📊 Clients par Date d'Inscription");
+    graphDialog->resize(1000, 600);
+    graphDialog->setStyleSheet("background-color: #f7fafc;");
+
+    QVBoxLayout *dialogLayout = new QVBoxLayout(graphDialog);
+    dialogLayout->setContentsMargins(30, 30, 30, 30);
+    dialogLayout->setSpacing(20);
+
+    QLabel *graphTitle = new QLabel("📈 Nombre de Clients Inscrits par Mois");
+    graphTitle->setStyleSheet("font-size: 28px; font-weight: bold; color: #1a202c; background: transparent;");
+    graphTitle->setAlignment(Qt::AlignCenter);
+    dialogLayout->addWidget(graphTitle);
+
+    QWidget *graphWidget = new QWidget();
+    graphWidget->setStyleSheet("QWidget { background-color: white; border-radius: 15px; }");
+    graphWidget->setMinimumHeight(400);
+
+    QVBoxLayout *graphLayout = new QVBoxLayout(graphWidget);
+    graphLayout->setContentsMargins(40, 40, 40, 40);
+    graphLayout->setSpacing(15);
+
+    // Trouver le maximum pour l'échelle
+    int maxClients = 0;
+    for (auto count : clientsParMois.values()) {
+        if (count > maxClients) maxClients = count;
+    }
+
+    // Créer les barres pour chaque mois
+    QList<QString> moisOrdered = clientsParMois.keys();
+
+    for (const QString &mois : moisOrdered) {
+        int nbClients = clientsParMois[mois];
+
+        QWidget *barContainer = new QWidget();
+        QHBoxLayout *barLayout = new QHBoxLayout(barContainer);
+        barLayout->setContentsMargins(0, 0, 0, 0);
+        barLayout->setSpacing(10);
+
+        QLabel *moisLabel = new QLabel(mois);
+        moisLabel->setFixedWidth(150);
+        moisLabel->setStyleSheet("font-size: 13px; font-weight: bold; color: #374151; background: transparent;");
+        barLayout->addWidget(moisLabel);
+
+        QWidget *bar = new QWidget();
+        int barWidth = maxClients > 0 ? (nbClients * 500 / maxClients) : 0;
+        bar->setFixedSize(barWidth, 35);
+
+        // Dégradé de couleurs selon le nombre
+        QString barColor;
+        if (nbClients >= 5) {
+            barColor = "#10b981";  // Vert pour beaucoup de clients
+        } else if (nbClients >= 3) {
+            barColor = "#3b82f6";  // Bleu pour moyen
+        } else if (nbClients >= 1) {
+            barColor = "#f59e0b";  // Orange pour peu
+        } else {
+            barColor = "#94a3b8";  // Gris pour aucun
+        }
+
+        bar->setStyleSheet(QString("QWidget { background: %1; border-radius: 8px; }").arg(barColor));
+        barLayout->addWidget(bar);
+
+        QLabel *countLabel = new QLabel(QString::number(nbClients) + " client" + (nbClients > 1 ? "s" : ""));
+        countLabel->setStyleSheet("font-size: 15px; font-weight: bold; color: #1e40af; background: transparent;");
+        barLayout->addWidget(countLabel);
+
+        barLayout->addStretch();
+        graphLayout->addWidget(barContainer);
+    }
+
+    graphLayout->addStretch();
+
+    // Ajouter des statistiques en bas
+    QLabel *statsLabel = new QLabel(QString(
+                                        "📊 <b>Total:</b> %1 client(s) | "
+                                        "📅 <b>Périodes:</b> %2 mois différent(s)"
+                                        ).arg(tableClients->rowCount()).arg(clientsParMois.size()));
+    statsLabel->setStyleSheet("font-size: 14px; color: #64748b; background: transparent; padding: 10px;");
+    statsLabel->setAlignment(Qt::AlignCenter);
+    graphLayout->addWidget(statsLabel);
+
+    dialogLayout->addWidget(graphWidget);
+
+    QPushButton *btnClose = new QPushButton("✖ Fermer");
+    btnClose->setFixedSize(120, 40);
+    btnClose->setCursor(Qt::PointingHandCursor);
+    btnClose->setStyleSheet(R"(
+        QPushButton {
+            background-color: #6b7280;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        QPushButton:hover { background-color: #4b5563; }
+    )");
+    connect(btnClose, &QPushButton::clicked, graphDialog, &QDialog::accept);
+
+    QHBoxLayout *btnLayout = new QHBoxLayout();
+    btnLayout->addStretch();
+    btnLayout->addWidget(btnClose);
+    dialogLayout->addLayout(btnLayout);
+
+    graphDialog->exec();
 }
 
 MainWindow::~MainWindow()

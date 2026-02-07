@@ -43,7 +43,7 @@ template <> constexpr inline auto MainWindow::qt_create_metaobjectdata<qt_meta_t
         "showListeClients",
         "",
         "showListeCommandes",
-        "showAjouterClient",
+        "showStatistiques",
         "onDeconnexion",
         "onAjouterClientSubmit",
         "onAnnulerAjout",
@@ -53,7 +53,10 @@ template <> constexpr inline auto MainWindow::qt_create_metaobjectdata<qt_meta_t
         "onSearchClient",
         "onSortClients",
         "onExportPDF",
-        "onExportExcel"
+        "onExportExcel",
+        "onFilterCommandes",
+        "onRefreshCommandes",
+        "onShowGraphique"
     };
 
     QtMocHelpers::UintData qt_methods {
@@ -61,7 +64,7 @@ template <> constexpr inline auto MainWindow::qt_create_metaobjectdata<qt_meta_t
         QtMocHelpers::SlotData<void()>(1, 2, QMC::AccessPrivate, QMetaType::Void),
         // Slot 'showListeCommandes'
         QtMocHelpers::SlotData<void()>(3, 2, QMC::AccessPrivate, QMetaType::Void),
-        // Slot 'showAjouterClient'
+        // Slot 'showStatistiques'
         QtMocHelpers::SlotData<void()>(4, 2, QMC::AccessPrivate, QMetaType::Void),
         // Slot 'onDeconnexion'
         QtMocHelpers::SlotData<void()>(5, 2, QMC::AccessPrivate, QMetaType::Void),
@@ -85,6 +88,12 @@ template <> constexpr inline auto MainWindow::qt_create_metaobjectdata<qt_meta_t
         QtMocHelpers::SlotData<void()>(13, 2, QMC::AccessPrivate, QMetaType::Void),
         // Slot 'onExportExcel'
         QtMocHelpers::SlotData<void()>(14, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'onFilterCommandes'
+        QtMocHelpers::SlotData<void()>(15, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'onRefreshCommandes'
+        QtMocHelpers::SlotData<void()>(16, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'onShowGraphique'
+        QtMocHelpers::SlotData<void()>(17, 2, QMC::AccessPrivate, QMetaType::Void),
     };
     QtMocHelpers::UintData qt_properties {
     };
@@ -110,7 +119,7 @@ void MainWindow::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
         switch (_id) {
         case 0: _t->showListeClients(); break;
         case 1: _t->showListeCommandes(); break;
-        case 2: _t->showAjouterClient(); break;
+        case 2: _t->showStatistiques(); break;
         case 3: _t->onDeconnexion(); break;
         case 4: _t->onAjouterClientSubmit(); break;
         case 5: _t->onAnnulerAjout(); break;
@@ -120,6 +129,9 @@ void MainWindow::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
         case 9: _t->onSortClients(); break;
         case 10: _t->onExportPDF(); break;
         case 11: _t->onExportExcel(); break;
+        case 12: _t->onFilterCommandes(); break;
+        case 13: _t->onRefreshCommandes(); break;
+        case 14: _t->onShowGraphique(); break;
         default: ;
         }
     }
@@ -144,14 +156,14 @@ int MainWindow::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 12)
+        if (_id < 15)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 12;
+        _id -= 15;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 12)
+        if (_id < 15)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 12;
+        _id -= 15;
     }
     return _id;
 }

@@ -53,6 +53,7 @@ C:/Users/arfao/OneDrive/Desktop/C++/interfaceG/build/Desktop_Qt_6_10_1_MinGW_64_
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtCore/qglobalstatic.h \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtCore/qhash.h \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtCore/qhashfunctions.h \
+  C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtCore/qiodevice.h \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtCore/qiodevicebase.h \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtCore/qitemselectionmodel.h \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtCore/qiterable.h \
@@ -150,6 +151,7 @@ C:/Users/arfao/OneDrive/Desktop/C++/interfaceG/build/Desktop_Qt_6_10_1_MinGW_64_
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtGui/qpaintdevice.h \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtGui/qpalette.h \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtGui/qpen.h \
+  C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtGui/qpicture.h \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtGui/qpixelformat.h \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtGui/qpixmap.h \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtGui/qpolygon.h \
@@ -167,11 +169,14 @@ C:/Users/arfao/OneDrive/Desktop/C++/interfaceG/build/Desktop_Qt_6_10_1_MinGW_64_
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtGui/qvalidator.h \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtGui/qwindowdefs.h \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtGui/qwindowdefs_win.h \
+  C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtWidgets/QButtonGroup \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtWidgets/QComboBox \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtWidgets/QDateEdit \
+  C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtWidgets/QLabel \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtWidgets/QLineEdit \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtWidgets/QMainWindow \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtWidgets/QPushButton \
+  C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtWidgets/QRadioButton \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtWidgets/QStackedWidget \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtWidgets/QTableWidget \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtWidgets/qabstractbutton.h \
@@ -180,12 +185,15 @@ C:/Users/arfao/OneDrive/Desktop/C++/interfaceG/build/Desktop_Qt_6_10_1_MinGW_64_
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtWidgets/qabstractscrollarea.h \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtWidgets/qabstractslider.h \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtWidgets/qabstractspinbox.h \
+  C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtWidgets/qbuttongroup.h \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtWidgets/qcombobox.h \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtWidgets/qdatetimeedit.h \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtWidgets/qframe.h \
+  C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtWidgets/qlabel.h \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtWidgets/qlineedit.h \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtWidgets/qmainwindow.h \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtWidgets/qpushbutton.h \
+  C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtWidgets/qradiobutton.h \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtWidgets/qrubberband.h \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtWidgets/qsizepolicy.h \
   C:/Users/arfao/OneDrive/Desktop/qt/6.10.1/mingw_64/include/QtWidgets/qslider.h \

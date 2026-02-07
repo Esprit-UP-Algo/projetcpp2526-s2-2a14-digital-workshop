@@ -8,6 +8,9 @@
 #include <QPushButton>
 #include <QDateEdit>
 #include <QComboBox>
+#include <QRadioButton>
+#include <QButtonGroup>
+#include <QLabel>
 
 class MainWindow : public QMainWindow
 {
@@ -20,7 +23,7 @@ public:
 private slots:
     void showListeClients();
     void showListeCommandes();
-    void showAjouterClient();
+    void showStatistiques();
     void onDeconnexion();
     void onAjouterClientSubmit();
     void onAnnulerAjout();
@@ -30,45 +33,54 @@ private slots:
     void onSortClients();
     void onExportPDF();
     void onExportExcel();
+    void onFilterCommandes();
+    void onRefreshCommandes();
+    void onShowGraphique();
 
 private:
     void createSidebar();
     void createListeClientsPage();
     void createListeCommandesPage();
-    void createAjouterClientPage();
+    void createStatistiquesPage();
     QWidget* createActionButtons(int row);
     void refreshClientTable();
+    void updateStatistiques();
+    void loadCommandesFromClients();
 
-    // Widgets principaux
     QStackedWidget *stackedWidget;
 
-    // Pages
     QWidget *pageListeClients;
-    QWidget *pageListeCommandes;
-    QWidget *pageAjouterClient;
+    QWidget *pageStatistiques;
 
-    // Formulaire ajout client
     QLineEdit *idEdit;
     QLineEdit *nomEdit;
     QLineEdit *prenomEdit;
     QLineEdit *emailEdit;
     QLineEdit *telEdit;
     QLineEdit *adresseEdit;
-    QDateEdit *dateEdit;  // Calendrier
+    QDateEdit *dateEdit;
     QLineEdit *commandeEdit;
-    QLineEdit *statutEdit;
 
-    // Tableau clients
+    QButtonGroup *statutGroup;
+    QRadioButton *radioEnCours;
+    QRadioButton *radioTermine;
+    QRadioButton *radioEnAttente;
+
     QTableWidget *tableClients;
+    QTableWidget *tableCommandes;
 
-    // Recherche et tri
     QLineEdit *searchEdit;
     QComboBox *sortComboBox;
+    QComboBox *filterStatutComboBox;
 
-    // Boutons sidebar
+    QLabel *statsClientTotal;
+    QLabel *statsEnCours;
+    QLabel *statsTerminees;
+    QTableWidget *statsTable;
+
     QPushButton *btnListeClients;
     QPushButton *btnListeCommandes;
-    QPushButton *btnAjouterClient;
+    QPushButton *btnStatistiques;
     QPushButton *btnDeconnexion;
 };
 
