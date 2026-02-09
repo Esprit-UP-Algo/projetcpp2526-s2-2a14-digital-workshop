@@ -22,7 +22,6 @@ public:
 
 private slots:
     void showListeClients();
-    void showListeCommandes();
     void showStatistiques();
     void onDeconnexion();
     void onAjouterClientSubmit();
@@ -33,19 +32,19 @@ private slots:
     void onSortClients();
     void onExportPDF();
     void onExportExcel();
-    void onFilterCommandes();
-    void onRefreshCommandes();
     void onShowGraphique();
 
 private:
     void createSidebar();
     void createListeClientsPage();
-    void createListeCommandesPage();
     void createStatistiquesPage();
     QWidget* createActionButtons(int row);
     void refreshClientTable();
     void updateStatistiques();
-    void loadCommandesFromClients();
+    void showListeCommandes() {}
+    void loadCommandesFromClients() {}
+    void onFilterCommandes() {}
+    void onRefreshCommandes() {}
 
     QStackedWidget *stackedWidget;
 
@@ -59,7 +58,6 @@ private:
     QLineEdit *telEdit;
     QLineEdit *adresseEdit;
     QDateEdit *dateEdit;
-    QLineEdit *commandeEdit;
 
     QButtonGroup *statutGroup;
     QRadioButton *radioEnCours;
@@ -67,11 +65,9 @@ private:
     QRadioButton *radioEnAttente;
 
     QTableWidget *tableClients;
-    QTableWidget *tableCommandes;
 
     QLineEdit *searchEdit;
     QComboBox *sortComboBox;
-    QComboBox *filterStatutComboBox;
 
     QLabel *statsClientTotal;
     QLabel *statsEnCours;
@@ -79,7 +75,6 @@ private:
     QTableWidget *statsTable;
 
     QPushButton *btnListeClients;
-    QPushButton *btnListeCommandes;
     QPushButton *btnStatistiques;
     QPushButton *btnDeconnexion;
 };

@@ -58,6 +58,17 @@ MainWindow::MainWindow(QWidget *parent)
     mainLayout->addWidget(stackedWidget);
 }
 
+// Remplacez UNIQUEMENT la fonction createSidebar() dans votre mainwindow.cpp par celle-ci :
+
+// ========================================
+// REMPLACEZ LA FONCTION createSidebar() PAR CELLE-CI
+// ========================================
+
+// ========================================
+// REMPLACEZ TOUTE LA FONCTION createSidebar() PAR CELLE-CI
+// Statistiques apparaît sous Clients quand on clique dessus
+// ========================================
+
 void MainWindow::createSidebar()
 {
     QWidget *sidebar = new QWidget();
@@ -73,6 +84,7 @@ void MainWindow::createSidebar()
     sidebarLayout->setSpacing(5);
     sidebarLayout->setContentsMargins(15, 30, 15, 30);
 
+    // Logo
     QLabel *logoLabel = new QLabel("🏢 Smart Menuiserie");
     logoLabel->setStyleSheet(R"(
         font-size: 20px;
@@ -85,9 +97,10 @@ void MainWindow::createSidebar()
     sidebarLayout->addWidget(logoLabel);
     sidebarLayout->addSpacing(30);
 
-    QString buttonStyle = R"(
+    // Styles
+    QString activeButtonStyle = R"(
         QPushButton {
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: rgba(255, 255, 255, 0.15);
             color: white;
             border: none;
             border-radius: 10px;
@@ -97,27 +110,78 @@ void MainWindow::createSidebar()
             font-weight: 500;
         }
         QPushButton:hover {
-            background-color: rgba(255, 255, 255, 0.2);
-        }
-        QPushButton:pressed {
-            background-color: rgba(255, 255, 255, 0.3);
+            background-color: rgba(255, 255, 255, 0.25);
         }
     )";
 
-    btnListeClients = new QPushButton("👥  Gestion Clients");
-    btnListeClients->setStyleSheet(buttonStyle);
+    QString disabledButtonStyle = R"(
+        QPushButton {
+            background-color: rgba(255, 255, 255, 0.03);
+            color: rgba(255, 255, 255, 0.3);
+            border: none;
+            border-radius: 10px;
+            padding: 15px 20px;
+            font-size: 15px;
+            text-align: left;
+            font-weight: 500;
+        }
+    )";
+
+    QString submenuButtonStyle = R"(
+        QPushButton {
+            background-color: rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 8px;
+            padding: 12px 20px 12px 45px;
+            font-size: 14px;
+            text-align: left;
+            font-weight: 400;
+        }
+        QPushButton:hover {
+            background-color: rgba(255, 255, 255, 0.18);
+        }
+    )";
+
+    // === UTILISATEURS (désactivé) ===
+    QPushButton *btnUtilisateurs = new QPushButton("👥  Utilisateurs");
+    btnUtilisateurs->setStyleSheet(disabledButtonStyle);
+    btnUtilisateurs->setMinimumHeight(50);
+    btnUtilisateurs->setEnabled(false);
+    sidebarLayout->addWidget(btnUtilisateurs);
+
+    // === MATÉRIEL (désactivé) ===
+    QPushButton *btnMateriel = new QPushButton("🔧  Matériel");
+    btnMateriel->setStyleSheet(disabledButtonStyle);
+    btnMateriel->setMinimumHeight(50);
+    btnMateriel->setEnabled(false);
+    sidebarLayout->addWidget(btnMateriel);
+
+    // === CLIENTS (actif) ===
+    btnListeClients = new QPushButton("💼  Clients");
+    btnListeClients->setStyleSheet(activeButtonStyle);
     btnListeClients->setCursor(Qt::PointingHandCursor);
     btnListeClients->setMinimumHeight(50);
     sidebarLayout->addWidget(btnListeClients);
 
-    btnStatistiques = new QPushButton("📊  Statistiques");
-    btnStatistiques->setStyleSheet(buttonStyle);
+    // === STATISTIQUES (sous-menu, caché au départ) ===
+    btnStatistiques = new QPushButton("    📊  Statistiques");
+    btnStatistiques->setStyleSheet(submenuButtonStyle);
     btnStatistiques->setCursor(Qt::PointingHandCursor);
-    btnStatistiques->setMinimumHeight(50);
+    btnStatistiques->setMinimumHeight(42);
+    btnStatistiques->setVisible(false);  // Caché au départ
     sidebarLayout->addWidget(btnStatistiques);
+
+    // === COMMANDES (désactivé) ===
+    QPushButton *btnCommandes = new QPushButton("📦  Commandes");
+    btnCommandes->setStyleSheet(disabledButtonStyle);
+    btnCommandes->setMinimumHeight(50);
+    btnCommandes->setEnabled(false);
+    sidebarLayout->addWidget(btnCommandes);
 
     sidebarLayout->addStretch();
 
+    // === DÉCONNEXION ===
     btnDeconnexion = new QPushButton("🚪  Déconnexion");
     btnDeconnexion->setStyleSheet(R"(
         QPushButton {
@@ -138,13 +202,22 @@ void MainWindow::createSidebar()
     btnDeconnexion->setMinimumHeight(50);
     sidebarLayout->addWidget(btnDeconnexion);
 
-    connect(btnListeClients, &QPushButton::clicked, this, &MainWindow::showListeClients);
+    // === CONNEXIONS ===
+
+    // Clic sur Clients -> Affiche la page ET le sous-menu Statistiques
+    connect(btnListeClients, &QPushButton::clicked, this, [this]() {
+        showListeClients();
+        btnStatistiques->setVisible(true);  // Affiche le bouton Statistiques
+    });
+
+    // Clic sur Statistiques -> Affiche la page des stats
     connect(btnStatistiques, &QPushButton::clicked, this, &MainWindow::showStatistiques);
+
+    // Déconnexion
     connect(btnDeconnexion, &QPushButton::clicked, this, &MainWindow::onDeconnexion);
 
     centralWidget()->layout()->addWidget(sidebar);
 }
-
 void MainWindow::createListeClientsPage()
 {
     pageListeClients = new QWidget();
@@ -781,10 +854,6 @@ void MainWindow::showListeClients()
     stackedWidget->setCurrentIndex(0);
 }
 
-void MainWindow::showListeCommandes()
-{
-    // Fonction supprimée - Liste Commandes n'existe plus
-}
 
 void MainWindow::showStatistiques()
 {
@@ -1101,20 +1170,6 @@ void MainWindow::updateStatistiques()
     }
 }
 
-void MainWindow::loadCommandesFromClients()
-{
-    // Fonction supprimée - Liste Commandes n'existe plus
-}
-
-void MainWindow::onFilterCommandes()
-{
-    // Fonction supprimée - Liste Commandes n'existe plus
-}
-
-void MainWindow::onRefreshCommandes()
-{
-    // Fonction supprimée - Liste Commandes n'existe plus
-}
 
 void MainWindow::onShowGraphique()
 {
@@ -1169,8 +1224,9 @@ void MainWindow::onShowGraphique()
     // Créer les barres pour chaque mois
     QList<QString> moisOrdered = clientsParMois.keys();
 
-    for (const QString &mois : moisOrdered) {
-        int nbClients = clientsParMois[mois];
+    for (auto it = clientsParMois.begin(); it != clientsParMois.end(); ++it) {
+        QString mois = it.key();
+        int nbClients = it.value();
 
         QWidget *barContainer = new QWidget();
         QHBoxLayout *barLayout = new QHBoxLayout(barContainer);
