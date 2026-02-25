@@ -1,840 +1,1307 @@
 #include "mainwindow.h"
-
-#include <QWidget>
-#include <QLineEdit>
-#include <QComboBox>
-#include <QPushButton>
-#include <QFormLayout>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
-#include <QHeaderView>
-#include <QTableWidget>
-#include <QTableWidgetItem>
-#include <QMessageBox>
+#include <QFormLayout>
 #include <QLabel>
-#include <QFrame>
-#include <QListWidget>
-#include <QStackedWidget>
-#include <QDateEdit>
-#include <QIntValidator>
+#include <QMessageBox>
+#include <QHeaderView>
+#include <QApplication>
+#include <QFileDialog>
+#include <QTextDocument>
+#include <QFile>
+#include <QTextStream>
 #include <QDate>
-#include <QSpacerItem>
+#include <QLocale>
+#include <QColor>
+#include <QFont>
+#include <QDialog>
+#include <QFrame>
 #include <algorithm>
 
+#if QT_VERSION >= 0x050000
+#include <QtPrintSupport/QPrinter>
+#else
+#include <QPrinter>
+#endif
+
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), nextId(1)
+    : QMainWindow(parent),
+    statsClientTotal(nullptr),
+    statsEnCours(nullptr),
+    statsTerminees(nullptr),
+    statsTable(nullptr)
 {
-    QWidget *centralWidget = new QWidget;
-    centralWidget->setStyleSheet("background-color: #f5f6fa;");
+    setWindowTitle("Smart Menuiserie - Dashboard");
+    resize(1600, 900);
+
+    setStyleSheet(R"(
+        QMainWindow {
+            background-color: #f7fafc;
+        }
+    )");
+
+    QWidget *centralWidget = new QWidget(this);
     setCentralWidget(centralWidget);
 
     QHBoxLayout *mainLayout = new QHBoxLayout(centralWidget);
     mainLayout->setSpacing(0);
     mainLayout->setContentsMargins(0, 0, 0, 0);
 
-    // === SIDEBAR GAUCHE ===
-    QFrame *sidebar = new QFrame;
-    sidebar->setStyleSheet(
-        "QFrame {"
-        "    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-        "                                 stop:0 #2c3e50, stop:1 #34495e);"
-        "    border: none;"
-        "}"
-        "QLabel {"
-        "    color: white;"
-        "    font-size: 16px;"
-        "    font-weight: bold;"
-        "    padding: 20px;"
-        "}"
-        "QListWidget {"
-        "    background: transparent;"
-        "    border: none;"
-        "    color: #ecf0f1;"
-        "    font-size: 14px;"
-        "}"
-        "QListWidget::item {"
-        "    padding: 15px 20px;"
-        "    border-bottom: 1px solid rgba(255,255,255,0.1);"
-        "}"
-        "QListWidget::item:selected {"
-        "    background-color: #3498db;"
-        "    border-left: 4px solid #2980b9;"
-        "}"
-        "QListWidget::item:hover {"
-        "    background-color: rgba(52, 152, 219, 0.3);"
-        "}"
-        );
+    createSidebar();
+    stackedWidget = new QStackedWidget();
+    createListeClientsPage();
+
+    createStatistiquesPage();
+    stackedWidget->addWidget(pageListeClients);
+    stackedWidget->addWidget(pageStatistiques);
+    stackedWidget->setCurrentIndex(0);
+    mainLayout->addWidget(stackedWidget);
+}
+
+// Remplacez UNIQUEMENT la fonction createSidebar() dans votre mainwindow.cpp par celle-ci :
+
+// ========================================
+// REMPLACEZ LA FONCTION createSidebar() PAR CELLE-CI
+// ========================================
+
+// ========================================
+// REMPLACEZ TOUTE LA FONCTION createSidebar() PAR CELLE-CI
+// Statistiques apparaît sous Clients quand on clique dessus
+// ========================================
+
+void MainWindow::createSidebar()
+{
+    QWidget *sidebar = new QWidget();
     sidebar->setFixedWidth(250);
+    sidebar->setStyleSheet(R"(
+        QWidget {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #1e3a8a, stop:1 #1e40af);
+        }
+    )");
 
     QVBoxLayout *sidebarLayout = new QVBoxLayout(sidebar);
-    sidebarLayout->setContentsMargins(0, 0, 0, 0);
-    sidebarLayout->setSpacing(0);
+    sidebarLayout->setSpacing(5);
+    sidebarLayout->setContentsMargins(15, 30, 15, 30);
 
-    QLabel *appTitle = new QLabel("🏢 GESTION");
-    appTitle->setAlignment(Qt::AlignCenter);
-    sidebarLayout->addWidget(appTitle);
+    // Logo
+    QLabel *logoLabel = new QLabel("🏢 Smart Menuiserie");
+    logoLabel->setStyleSheet(R"(
+        font-size: 20px;
+        font-weight: bold;
+        color: white;
+        padding: 20px 10px;
+        background: transparent;
+    )");
+    logoLabel->setAlignment(Qt::AlignCenter);
+    sidebarLayout->addWidget(logoLabel);
+    sidebarLayout->addSpacing(30);
 
-    navList = new QListWidget;
-    navList->addItem("👥 Utilisateurs");
-    navList->addItem("🛠️ Matériel");
-    navList->addItem("👨‍💼 Clients");
-    navList->addItem("📦 Commandes");
-    navList->setCurrentRow(1);
+    // Styles
+    QString activeButtonStyle = R"(
+        QPushButton {
+            background-color: rgba(255, 255, 255, 0.15);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 15px 20px;
+            font-size: 15px;
+            text-align: left;
+            font-weight: 500;
+        }
+        QPushButton:hover {
+            background-color: rgba(255, 255, 255, 0.25);
+        }
+    )";
 
-    connect(navList, &QListWidget::currentRowChanged, this, &MainWindow::changePage);
+    QString disabledButtonStyle = R"(
+        QPushButton {
+            background-color: rgba(255, 255, 255, 0.03);
+            color: rgba(255, 255, 255, 0.3);
+            border: none;
+            border-radius: 10px;
+            padding: 15px 20px;
+            font-size: 15px;
+            text-align: left;
+            font-weight: 500;
+        }
+    )";
 
-    sidebarLayout->addWidget(navList);
+    QString submenuButtonStyle = R"(
+        QPushButton {
+            background-color: rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 8px;
+            padding: 12px 20px 12px 45px;
+            font-size: 14px;
+            text-align: left;
+            font-weight: 400;
+        }
+        QPushButton:hover {
+            background-color: rgba(255, 255, 255, 0.18);
+        }
+    )";
+
+    // === UTILISATEURS (désactivé) ===
+    QPushButton *btnUtilisateurs = new QPushButton("👥  Utilisateurs");
+    btnUtilisateurs->setStyleSheet(disabledButtonStyle);
+    btnUtilisateurs->setMinimumHeight(50);
+    btnUtilisateurs->setEnabled(false);
+    sidebarLayout->addWidget(btnUtilisateurs);
+
+    // === MATÉRIEL (désactivé) ===
+    QPushButton *btnMateriel = new QPushButton("🔧  Matériel");
+    btnMateriel->setStyleSheet(disabledButtonStyle);
+    btnMateriel->setMinimumHeight(50);
+    btnMateriel->setEnabled(false);
+    sidebarLayout->addWidget(btnMateriel);
+
+    // === CLIENTS (actif) ===
+    btnListeClients = new QPushButton("💼  Clients");
+    btnListeClients->setStyleSheet(activeButtonStyle);
+    btnListeClients->setCursor(Qt::PointingHandCursor);
+    btnListeClients->setMinimumHeight(50);
+    sidebarLayout->addWidget(btnListeClients);
+
+    // === STATISTIQUES (sous-menu, caché au départ) ===
+    btnStatistiques = new QPushButton("    📊  Statistiques");
+    btnStatistiques->setStyleSheet(submenuButtonStyle);
+    btnStatistiques->setCursor(Qt::PointingHandCursor);
+    btnStatistiques->setMinimumHeight(42);
+    btnStatistiques->setVisible(false);  // Caché au départ
+    sidebarLayout->addWidget(btnStatistiques);
+
+    // === COMMANDES (désactivé) ===
+    QPushButton *btnCommandes = new QPushButton("📦  Commandes");
+    btnCommandes->setStyleSheet(disabledButtonStyle);
+    btnCommandes->setMinimumHeight(50);
+    btnCommandes->setEnabled(false);
+    sidebarLayout->addWidget(btnCommandes);
+
     sidebarLayout->addStretch();
 
-    QLabel *footer = new QLabel("v1.0 - Gestion Matériel");
-    footer->setStyleSheet("color: #7f8c8d; font-size: 11px; padding: 10px;");
-    footer->setAlignment(Qt::AlignCenter);
-    sidebarLayout->addWidget(footer);
-
-    // === CONTENU PRINCIPAL ===
-    pagesWidget = new QStackedWidget;
-
-    setupUsersPage();
-    setupMaterialPage();
-    setupClientsPage();
-    setupOrdersPage();
-
-    mainLayout->addWidget(sidebar);
-    mainLayout->addWidget(pagesWidget, 1);
-
-    setWindowTitle("Système de Gestion Matériel");
-    resize(1200, 700);
-
-    // Ajouter des exemples
-    Material mat1 = {1, "Poutre en chêne", "Bois", 50, 10, QDate::currentDate(), "BoisCorp", "Disponible"};
-    Material mat2 = {2, "Marteau perforateur", "Outil", 15, 5, QDate(2024, 1, 15), "TechTools", "Disponible"};
-    Material mat3 = {3, "Vis à bois 5x60", "Consommable", 500, 100, QDate(2024, 2, 20), "FixPro", "Disponible"};
-    materialsList << mat1 << mat2 << mat3;
-    nextId = 4;
-    updateMaterialTable();
-}
-
-void MainWindow::setupMaterialPage()
-{
-    QWidget *materialPage = new QWidget;
-    materialPage->setStyleSheet("background-color: #f5f6fa;");
-
-    QVBoxLayout *pageLayout = new QVBoxLayout(materialPage);
-    pageLayout->setContentsMargins(30, 30, 30, 30);
-    pageLayout->setSpacing(20);
-
-    // === EN-TÊTE ===
-    QFrame *header = new QFrame;
-    header->setStyleSheet(
-        "QFrame {"
-        "    background-color: white;"
-        "    border-radius: 10px;"
-        "    padding: 20px;"
-        "}"
-        );
-
-    QHBoxLayout *headerLayout = new QHBoxLayout(header);
-
-    QLabel *pageTitle = new QLabel("🛠️ GESTION DU MATÉRIEL");
-    pageTitle->setStyleSheet("color: #2c3e50; font-size: 22px; font-weight: bold;");
-
-    headerLayout->addWidget(pageTitle);
-    headerLayout->addStretch();
-
-    searchEdit = new QLineEdit;
-    searchEdit->setPlaceholderText("🔍 Rechercher...");
-    searchEdit->setStyleSheet(
-        "QLineEdit {"
-        "    background-color: #ecf0f1;"
-        "    border: 1px solid #dfe6e9;"
-        "    border-radius: 6px;"
-        "    padding: 8px 12px;"
-        "    font-size: 13px;"
-        "    min-width: 200px;"
-        "    color: black;"
-        "}"
-        );
-
-    sortComboBox = new QComboBox;
-    sortComboBox->addItems({"Trier par ID (croissant)", "Trier par ID (décroissant)",
-                            "Trier par quantité (croissant)", "Trier par quantité (décroissant)",
-                            "Trier par type", "Trier par nom"});
-    sortComboBox->setStyleSheet(
-        "QComboBox {"
-        "    background-color: #ecf0f1;"
-        "    border: 1px solid #dfe6e9;"
-        "    border-radius: 6px;"
-        "    padding: 8px 12px;"
-        "    font-size: 13px;"
-        "    min-width: 220px;"
-        "    color: black;"
-        "}"
-        );
-
-    QPushButton *searchBtn = createStyledButton("Chercher", "#3498db");
-    QPushButton *deleteBtn = createStyledButton("Supprimer", "#e74c3c");
-    exportBtn = createStyledButton("📊 Exporter PDF", "#9b59b6");
-    statsBtn = createStyledButton("📈 Statistiques", "#1abc9c");
-    sortBtn = createStyledButton("📊 Trier", "#f39c12");
-
-    headerLayout->addWidget(searchEdit);
-    headerLayout->addWidget(searchBtn);
-    headerLayout->addWidget(sortComboBox);
-    headerLayout->addWidget(sortBtn);
-    headerLayout->addWidget(deleteBtn);
-    headerLayout->addWidget(exportBtn);
-    headerLayout->addWidget(statsBtn);
-
-    pageLayout->addWidget(header);
-
-    // === CONTENU ===
-    QHBoxLayout *contentLayout = new QHBoxLayout;
-    contentLayout->setSpacing(20);
-
-    // Colonne gauche - Formulaire
-    QFrame *formFrame = new QFrame;
-    formFrame->setStyleSheet(
-        "QFrame {"
-        "    background-color: white;"
-        "    border-radius: 10px;"
-        "    padding: 25px;"
-        "}"
-        );
-
-    QVBoxLayout *formLayout = new QVBoxLayout(formFrame);
-
-    QLabel *formTitle = new QLabel("Ajouter/Modifier du matériel");
-    formTitle->setStyleSheet("color: #3498db; font-size: 16px; font-weight: bold; margin-bottom: 15px;");
-    formLayout->addWidget(formTitle);
-
-    QString lineEditStyle =
-        "QLineEdit {"
-        "    color: black;"
-        "    background-color: white;"
-        "    border: 1px solid #ced4da;"
-        "    border-radius: 4px;"
-        "    padding: 8px 12px;"
-        "    font-size: 13px;"
-        "}"
-        "QLineEdit:focus {"
-        "    border: 1px solid #3498db;"
-        "    outline: none;"
-        "}";
-
-    QString comboBoxStyle =
-        "QComboBox {"
-        "    color: black;"
-        "    background-color: white;"
-        "    border: 1px solid #ced4da;"
-        "    border-radius: 4px;"
-        "    padding: 8px 12px;"
-        "    font-size: 13px;"
-        "}"
-        "QComboBox::drop-down {"
-        "    border: none;"
-        "    width: 20px;"
-        "}"
-        "QComboBox QAbstractItemView {"
-        "    color: black;"
-        "    background-color: white;"
-        "    border: 1px solid #ced4da;"
-        "    selection-background-color: #3498db;"
-        "    selection-color: white;"
-        "}";
-
-    idEdit = new QLineEdit;
-    idEdit->setReadOnly(true);
-    idEdit->setText("1");
-    idEdit->setStyleSheet(
-        "QLineEdit {"
-        "    background-color: #e9ecef;"
-        "    color: #6c757d;"
-        "    border: 1px solid #ced4da;"
-        "    border-radius: 4px;"
-        "    padding: 8px 12px;"
-        "    font-size: 13px;"
-        "}"
-        );
-
-    nameEdit = new QLineEdit;
-    nameEdit->setPlaceholderText("Nom du matériel");
-    nameEdit->setStyleSheet(lineEditStyle);
-
-    typeBox = new QComboBox;
-    typeBox->addItems({"Bois", "Outil", "Consommable", "Équipement", "Métal"});
-    typeBox->setStyleSheet(comboBoxStyle);
-
-    quantityEdit = new QLineEdit;
-    quantityEdit->setPlaceholderText("Quantité disponible");
-    quantityEdit->setValidator(new QIntValidator(0, 99999, this));
-    quantityEdit->setStyleSheet(lineEditStyle);
-
-    thresholdEdit = new QLineEdit;
-    thresholdEdit->setPlaceholderText("Seuil minimum");
-    thresholdEdit->setValidator(new QIntValidator(0, 99999, this));
-    thresholdEdit->setStyleSheet(lineEditStyle);
-
-    dateEdit = new QDateEdit;
-    dateEdit->setDate(QDate::currentDate());
-    dateEdit->setCalendarPopup(true);
-    dateEdit->setStyleSheet(
-        "QDateEdit {"
-        "    color: black;"
-        "    background-color: white;"
-        "    border: 1px solid #ced4da;"
-        "    border-radius: 4px;"
-        "    padding: 8px 12px;"
-        "    font-size: 13px;"
-        "}"
-        );
-
-    supplierEdit = new QLineEdit;
-    supplierEdit->setPlaceholderText("Fournisseur");
-    supplierEdit->setStyleSheet(lineEditStyle);
-
-    statusBox = new QComboBox;
-    statusBox->addItems({"Disponible", "Rupture", "En commande", "Hors service"});
-    statusBox->setStyleSheet(comboBoxStyle);
-
-    QFormLayout *inputForm = new QFormLayout;
-    inputForm->setSpacing(12);
-    inputForm->setContentsMargins(0, 0, 0, 0);
-
-    QString labelStyle =
-        "QLabel {"
-        "    color: #2c3e50;"
-        "    font-weight: 600;"
-        "    font-size: 13px;"
-        "    padding: 2px 0;"
-        "}";
-
-    QLabel *idLabel = new QLabel("ID:");
-    idLabel->setStyleSheet(labelStyle);
-    QLabel *nameLabel = new QLabel("Nom:");
-    nameLabel->setStyleSheet(labelStyle);
-    QLabel *typeLabel = new QLabel("Type:");
-    typeLabel->setStyleSheet(labelStyle);
-    QLabel *quantityLabel = new QLabel("Quantité:");
-    quantityLabel->setStyleSheet(labelStyle);
-    QLabel *thresholdLabel = new QLabel("Seuil min:");
-    thresholdLabel->setStyleSheet(labelStyle);
-    QLabel *dateLabel = new QLabel("Date ajout:");
-    dateLabel->setStyleSheet(labelStyle);
-    QLabel *supplierLabel = new QLabel("Fournisseur:");
-    supplierLabel->setStyleSheet(labelStyle);
-    QLabel *statusLabel = new QLabel("Statut:");
-    statusLabel->setStyleSheet(labelStyle);
-
-    inputForm->addRow(idLabel, idEdit);
-    inputForm->addRow(nameLabel, nameEdit);
-    inputForm->addRow(typeLabel, typeBox);
-    inputForm->addRow(quantityLabel, quantityEdit);
-    inputForm->addRow(thresholdLabel, thresholdEdit);
-    inputForm->addRow(dateLabel, dateEdit);
-    inputForm->addRow(supplierLabel, supplierEdit);
-    inputForm->addRow(statusLabel, statusBox);
-
-    int fieldHeight = 38;
-    int labelWidth = 100;
-
-    idEdit->setFixedHeight(fieldHeight);
-    nameEdit->setFixedHeight(fieldHeight);
-    typeBox->setFixedHeight(fieldHeight);
-    quantityEdit->setFixedHeight(fieldHeight);
-    thresholdEdit->setFixedHeight(fieldHeight);
-    dateEdit->setFixedHeight(fieldHeight);
-    supplierEdit->setFixedHeight(fieldHeight);
-    statusBox->setFixedHeight(fieldHeight);
-
-    idLabel->setFixedWidth(labelWidth);
-    nameLabel->setFixedWidth(labelWidth);
-    typeLabel->setFixedWidth(labelWidth);
-    quantityLabel->setFixedWidth(labelWidth);
-    thresholdLabel->setFixedWidth(labelWidth);
-    dateLabel->setFixedWidth(labelWidth);
-    supplierLabel->setFixedWidth(labelWidth);
-    statusLabel->setFixedWidth(labelWidth);
-
-    formLayout->addLayout(inputForm);
-
-    QHBoxLayout *formButtons = new QHBoxLayout;
-    formButtons->setSpacing(10);
-    formButtons->setContentsMargins(0, 20, 0, 0);
-
-    QPushButton *addBtn = createStyledButton("➕ Ajouter", "#2ecc71");
-    modifyBtn = createStyledButton("✏️ Modifier", "#3498db");
-    QPushButton *clearBtn = createStyledButton("🔄 Effacer", "#95a5a6");
-
-    int buttonHeight = 38;
-    addBtn->setFixedHeight(buttonHeight);
-    modifyBtn->setFixedHeight(buttonHeight);
-    clearBtn->setFixedHeight(buttonHeight);
-    addBtn->setMinimumWidth(120);
-    modifyBtn->setMinimumWidth(120);
-    clearBtn->setMinimumWidth(120);
-
-    formButtons->addWidget(addBtn);
-    formButtons->addWidget(modifyBtn);
-    formButtons->addWidget(clearBtn);
-
-    formLayout->addLayout(formButtons);
-    formLayout->addStretch();
-
-    contentLayout->addWidget(formFrame, 1);
-
-    // Colonne droite - Tableau
-    QFrame *tableFrame = new QFrame;
-    tableFrame->setStyleSheet(
-        "QFrame {"
-        "    background-color: white;"
-        "    border-radius: 10px;"
-        "}"
-        );
-
-    QVBoxLayout *tableFrameLayout = new QVBoxLayout(tableFrame);
-
-    QLabel *tableTitle = new QLabel("Inventaire du matériel");
-    tableTitle->setStyleSheet("color: #2c3e50; font-size: 16px; font-weight: bold; padding: 20px 20px 10px 20px;");
-    tableFrameLayout->addWidget(tableTitle);
-
-    materialTable = new QTableWidget(0, 8);
-    QStringList headers = {"ID", "NOM", "TYPE", "QUANTITÉ", "SEUIL", "DATE", "FOURNISSEUR", "STATUT"};
-    materialTable->setHorizontalHeaderLabels(headers);
-
-    materialTable->setStyleSheet(
-        "QTableWidget {"
-        "    background-color: white;"
-        "    border: none;"
-        "    font-size: 13px;"
-        "}"
-        "QTableWidget::item {"
-        "    padding: 10px;"
-        "    border-bottom: 1px solid #f1f2f6;"
-        "    color: #2c3e50;"
-        "}"
-        "QHeaderView::section {"
-        "    background-color: #2c3e50;"
-        "    color: white;"
-        "    padding: 12px;"
-        "    border: none;"
-        "    font-size: 13px;"
-        "    font-weight: bold;"
-        "}"
-        );
-
-    materialTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    materialTable->verticalHeader()->setVisible(false);
-    materialTable->setSelectionBehavior(QAbstractItemView::SelectRows);
-    materialTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
-
-    tableFrameLayout->addWidget(materialTable, 1);
-    contentLayout->addWidget(tableFrame, 2);
-
-    pageLayout->addLayout(contentLayout, 1);
-
-    // Connexions
-    connect(addBtn, &QPushButton::clicked, this, &MainWindow::addMaterial);
-    connect(deleteBtn, &QPushButton::clicked, this, &MainWindow::deleteMaterial);
-    connect(modifyBtn, &QPushButton::clicked, this, &MainWindow::modifyMaterial);
-    connect(clearBtn, &QPushButton::clicked, this, &MainWindow::clearFields);
-    connect(searchBtn, &QPushButton::clicked, this, &MainWindow::searchMaterial);
-    connect(exportBtn, &QPushButton::clicked, this, &MainWindow::exportToPdf);
-    connect(statsBtn, &QPushButton::clicked, this, &MainWindow::showStatistics);
-    connect(sortBtn, &QPushButton::clicked, this, &MainWindow::sortMaterial);
-
-    connect(materialTable, &QTableWidget::itemSelectionChanged, [this]() {
-        int row = materialTable->currentRow();
-        if (row >= 0) {
-            idEdit->setText(materialTable->item(row, 0)->text());
-            nameEdit->setText(materialTable->item(row, 1)->text());
-
-            QString type = materialTable->item(row, 2)->text();
-            int typeIndex = typeBox->findText(type);
-            if (typeIndex >= 0) typeBox->setCurrentIndex(typeIndex);
-
-            quantityEdit->setText(materialTable->item(row, 3)->text());
-            thresholdEdit->setText(materialTable->item(row, 4)->text());
-
-            QDate date = QDate::fromString(materialTable->item(row, 5)->text(), "dd/MM/yyyy");
-            dateEdit->setDate(date.isValid() ? date : QDate::currentDate());
-
-            supplierEdit->setText(materialTable->item(row, 6)->text());
-
-            QString status = materialTable->item(row, 7)->text();
-            int statusIndex = statusBox->findText(status);
-            if (statusIndex >= 0) statusBox->setCurrentIndex(statusIndex);
+    // === DÉCONNEXION ===
+    btnDeconnexion = new QPushButton("🚪  Déconnexion");
+    btnDeconnexion->setStyleSheet(R"(
+        QPushButton {
+            background-color: rgba(239, 68, 68, 0.8);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 15px 20px;
+            font-size: 15px;
+            text-align: left;
+            font-weight: 500;
         }
+        QPushButton:hover {
+            background-color: rgba(220, 38, 38, 0.9);
+        }
+    )");
+    btnDeconnexion->setCursor(Qt::PointingHandCursor);
+    btnDeconnexion->setMinimumHeight(50);
+    sidebarLayout->addWidget(btnDeconnexion);
+
+    // === CONNEXIONS ===
+
+    // Clic sur Clients -> Affiche la page ET le sous-menu Statistiques
+    connect(btnListeClients, &QPushButton::clicked, this, [this]() {
+        showListeClients();
+        btnStatistiques->setVisible(true);  // Affiche le bouton Statistiques
     });
 
-    pagesWidget->addWidget(materialPage);
+    // Clic sur Statistiques -> Affiche la page des stats
+    connect(btnStatistiques, &QPushButton::clicked, this, &MainWindow::showStatistiques);
+
+    // Déconnexion
+    connect(btnDeconnexion, &QPushButton::clicked, this, &MainWindow::onDeconnexion);
+
+    centralWidget()->layout()->addWidget(sidebar);
+}
+void MainWindow::createListeClientsPage()
+{
+    pageListeClients = new QWidget();
+    pageListeClients->setStyleSheet("background-color: #f7fafc;");
+
+    QHBoxLayout *mainLayout = new QHBoxLayout(pageListeClients);
+    mainLayout->setContentsMargins(20, 20, 20, 20);
+    mainLayout->setSpacing(20);
+
+    QWidget *leftPanel = new QWidget();
+    leftPanel->setFixedWidth(450);
+    leftPanel->setStyleSheet("QWidget { background-color: white; border-radius: 15px; }");
+
+    QVBoxLayout *leftLayout = new QVBoxLayout(leftPanel);
+    leftLayout->setContentsMargins(30, 30, 30, 30);
+    leftLayout->setSpacing(8);
+
+    QLabel *formTitle = new QLabel("➕ Ajouter Client");
+    formTitle->setStyleSheet("font-size: 22px; font-weight: bold; color: #1e40af; background: transparent;");
+    leftLayout->addWidget(formTitle);
+
+    QFrame *line = new QFrame();
+    line->setFrameShape(QFrame::HLine);
+    line->setStyleSheet("background-color: #e2e8f0;");
+    line->setFixedHeight(2);
+    leftLayout->addWidget(line);
+
+    leftLayout->addSpacing(10);
+
+    QString inputStyle = R"(
+        QLineEdit, QDateEdit {
+            padding: 12px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            background-color: #f9fafb;
+            height: 42px;
+        }
+        QLineEdit:focus, QDateEdit:focus {
+            border: 2px solid #1e40af;
+            background-color: white;
+        }
+    )";
+
+    QString labelStyle = "font-size: 13px; font-weight: 600; color: #374151; background: transparent; padding: 0px; margin: 0px;";
+
+    // ID Client
+    QLabel *lblId = new QLabel("ID Client *");
+    lblId->setStyleSheet(labelStyle);
+    lblId->setFixedHeight(20);
+    leftLayout->addWidget(lblId);
+
+    idEdit = new QLineEdit();
+    idEdit->setStyleSheet(inputStyle);
+    idEdit->setPlaceholderText("Ex: 123");
+    idEdit->setFixedHeight(42);
+    leftLayout->addWidget(idEdit);
+
+    // Nom
+    QLabel *lblNom = new QLabel("Nom *");
+    lblNom->setStyleSheet(labelStyle);
+    lblNom->setFixedHeight(20);
+    leftLayout->addWidget(lblNom);
+
+    nomEdit = new QLineEdit();
+    nomEdit->setStyleSheet(inputStyle);
+    nomEdit->setPlaceholderText("Ex: Ben Ali");
+    nomEdit->setFixedHeight(42);
+    leftLayout->addWidget(nomEdit);
+
+    // Prénom
+    QLabel *lblPrenom = new QLabel("Prénom *");
+    lblPrenom->setStyleSheet(labelStyle);
+    lblPrenom->setFixedHeight(20);
+    leftLayout->addWidget(lblPrenom);
+
+    prenomEdit = new QLineEdit();
+    prenomEdit->setStyleSheet(inputStyle);
+    prenomEdit->setPlaceholderText("Ex: Mohamed");
+    prenomEdit->setFixedHeight(42);
+    leftLayout->addWidget(prenomEdit);
+
+    // Email
+    QLabel *lblEmail = new QLabel("Email *");
+    lblEmail->setStyleSheet(labelStyle);
+    lblEmail->setFixedHeight(20);
+    leftLayout->addWidget(lblEmail);
+
+    emailEdit = new QLineEdit();
+    emailEdit->setStyleSheet(inputStyle);
+    emailEdit->setPlaceholderText("email@exemple.com");
+    emailEdit->setFixedHeight(42);
+    leftLayout->addWidget(emailEdit);
+
+    // Téléphone
+    QLabel *lblTel = new QLabel("Téléphone *");
+    lblTel->setStyleSheet(labelStyle);
+    lblTel->setFixedHeight(20);
+    leftLayout->addWidget(lblTel);
+
+    telEdit = new QLineEdit();
+    telEdit->setStyleSheet(inputStyle);
+    telEdit->setPlaceholderText("99123456");
+    telEdit->setFixedHeight(42);
+    leftLayout->addWidget(telEdit);
+
+    // Adresse
+    QLabel *lblAdresse = new QLabel("Adresse *");
+    lblAdresse->setStyleSheet(labelStyle);
+    lblAdresse->setFixedHeight(20);
+    leftLayout->addWidget(lblAdresse);
+
+    adresseEdit = new QLineEdit();
+    adresseEdit->setStyleSheet(inputStyle);
+    adresseEdit->setPlaceholderText("Tunis, Ariana");
+    adresseEdit->setFixedHeight(42);
+    leftLayout->addWidget(adresseEdit);
+
+    // Date inscription
+    QLabel *lblDate = new QLabel("Date inscription *");
+    lblDate->setStyleSheet(labelStyle);
+    lblDate->setFixedHeight(20);
+    leftLayout->addWidget(lblDate);
+
+    dateEdit = new QDateEdit();
+    dateEdit->setDate(QDate::currentDate());
+    dateEdit->setCalendarPopup(true);
+    dateEdit->setDisplayFormat("dd/MM/yyyy");
+    dateEdit->setStyleSheet(inputStyle);
+    dateEdit->setFixedHeight(42);
+    leftLayout->addWidget(dateEdit);
+
+    // Statut
+    QLabel *lblStatut = new QLabel("Statut *");
+    lblStatut->setStyleSheet(labelStyle);
+    lblStatut->setFixedHeight(20);
+    leftLayout->addWidget(lblStatut);
+
+    QWidget *statutWidget = new QWidget();
+    QHBoxLayout *statutLayout = new QHBoxLayout(statutWidget);
+    statutLayout->setContentsMargins(0, 0, 0, 0);
+    statutLayout->setSpacing(15);
+
+    statutGroup = new QButtonGroup(this);
+
+    radioEnCours = new QRadioButton("En Cours");
+    radioEnCours->setStyleSheet(R"(
+        QRadioButton {
+            font-size: 13px;
+            color: #374151;
+            background: transparent;
+            padding: 5px;
+        }
+        QRadioButton::indicator { width: 18px; height: 18px; }
+        QRadioButton::indicator:checked {
+            background-color: #f59e0b;
+            border: 2px solid #f59e0b;
+            border-radius: 9px;
+        }
+        QRadioButton::indicator:unchecked {
+            background-color: white;
+            border: 2px solid #d1d5db;
+            border-radius: 9px;
+        }
+    )");
+    radioEnCours->setChecked(true);
+
+    radioTermine = new QRadioButton("Terminé");
+    radioTermine->setStyleSheet(R"(
+        QRadioButton {
+            font-size: 13px;
+            color: #374151;
+            background: transparent;
+            padding: 5px;
+        }
+        QRadioButton::indicator { width: 18px; height: 18px; }
+        QRadioButton::indicator:checked {
+            background-color: #10b981;
+            border: 2px solid #10b981;
+            border-radius: 9px;
+        }
+        QRadioButton::indicator:unchecked {
+            background-color: white;
+            border: 2px solid #d1d5db;
+            border-radius: 9px;
+        }
+    )");
+
+    radioEnAttente = new QRadioButton("Attente");
+    radioEnAttente->setStyleSheet(R"(
+        QRadioButton {
+            font-size: 13px;
+            color: #374151;
+            background: transparent;
+            padding: 5px;
+        }
+        QRadioButton::indicator { width: 18px; height: 18px; }
+        QRadioButton::indicator:checked {
+            background-color: #3b82f6;
+            border: 2px solid #3b82f6;
+            border-radius: 9px;
+        }
+        QRadioButton::indicator:unchecked {
+            background-color: white;
+            border: 2px solid #d1d5db;
+            border-radius: 9px;
+        }
+    )");
+
+    statutGroup->addButton(radioEnCours, 0);
+    statutGroup->addButton(radioTermine, 1);
+    statutGroup->addButton(radioEnAttente, 2);
+
+    statutLayout->addWidget(radioEnCours);
+    statutLayout->addWidget(radioTermine);
+    statutLayout->addWidget(radioEnAttente);
+    statutLayout->addStretch();
+
+    statutWidget->setFixedHeight(35);
+    leftLayout->addWidget(statutWidget);
+
+    leftLayout->addSpacing(15);
+
+    // Boutons
+    QHBoxLayout *btnLayout = new QHBoxLayout();
+
+    QPushButton *btnSubmit = new QPushButton("✓ Ajouter");
+    btnSubmit->setFixedHeight(45);
+    btnSubmit->setCursor(Qt::PointingHandCursor);
+    btnSubmit->setStyleSheet(R"(
+        QPushButton {
+            background-color: #10b981;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: bold;
+        }
+        QPushButton:hover { background-color: #059669; }
+    )");
+    connect(btnSubmit, &QPushButton::clicked, this, &MainWindow::onAjouterClientSubmit);
+
+    QPushButton *btnClear = new QPushButton("✗ Effacer");
+    btnClear->setFixedHeight(45);
+    btnClear->setCursor(Qt::PointingHandCursor);
+    btnClear->setStyleSheet(R"(
+        QPushButton {
+            background-color: #6b7280;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: bold;
+        }
+        QPushButton:hover { background-color: #4b5563; }
+    )");
+    connect(btnClear, &QPushButton::clicked, this, &MainWindow::onAnnulerAjout);
+
+    btnLayout->addWidget(btnSubmit);
+    btnLayout->addWidget(btnClear);
+    leftLayout->addLayout(btnLayout);
+
+    leftLayout->addStretch();
+
+    // Partie droite avec le tableau
+    QWidget *rightPanel = new QWidget();
+    QVBoxLayout *rightLayout = new QVBoxLayout(rightPanel);
+    rightLayout->setContentsMargins(0, 0, 0, 0);
+    rightLayout->setSpacing(15);
+
+    QLabel *listTitle = new QLabel("👥 Liste des Clients");
+    listTitle->setStyleSheet("font-size: 28px; font-weight: bold; color: #1a202c; background: transparent;");
+    rightLayout->addWidget(listTitle);
+
+    QHBoxLayout *toolbarLayout = new QHBoxLayout();
+    toolbarLayout->setSpacing(10);
+
+    searchEdit = new QLineEdit();
+    searchEdit->setPlaceholderText("🔍 Rechercher par ID...");
+    searchEdit->setFixedWidth(180);
+    searchEdit->setStyleSheet(R"(
+        QLineEdit {
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        QLineEdit:focus { border: 2px solid #1e40af; }
+    )");
+    toolbarLayout->addWidget(searchEdit);
+
+    QPushButton *btnSearch = new QPushButton("Rechercher");
+    btnSearch->setFixedHeight(35);
+    btnSearch->setCursor(Qt::PointingHandCursor);
+    btnSearch->setStyleSheet(R"(
+        QPushButton {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0 15px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        QPushButton:hover { background-color: #2563eb; }
+    )");
+    connect(btnSearch, &QPushButton::clicked, this, &MainWindow::onSearchClient);
+    toolbarLayout->addWidget(btnSearch);
+
+    toolbarLayout->addSpacing(15);
+
+    sortComboBox = new QComboBox();
+    sortComboBox->addItem("📊 Trier: ID");
+    sortComboBox->addItem("📊 Trier: Date");
+    sortComboBox->addItem("📊 Trier: Statut");
+    sortComboBox->setFixedWidth(150);
+    sortComboBox->setCursor(Qt::PointingHandCursor);
+    sortComboBox->setStyleSheet("QComboBox { padding: 8px 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 13px; }");
+    connect(sortComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onSortClients);
+    toolbarLayout->addWidget(sortComboBox);
+
+    toolbarLayout->addStretch();
+
+    QPushButton *btnExportPDF = new QPushButton("📄 PDF");
+    btnExportPDF->setFixedHeight(35);
+    btnExportPDF->setCursor(Qt::PointingHandCursor);
+    btnExportPDF->setStyleSheet(R"(
+        QPushButton {
+            background-color: #dc2626;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0 15px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        QPushButton:hover { background-color: #b91c1c; }
+    )");
+    connect(btnExportPDF, &QPushButton::clicked, this, &MainWindow::onExportPDF);
+    toolbarLayout->addWidget(btnExportPDF);
+
+    QPushButton *btnExportExcel = new QPushButton("📊 Excel");
+    btnExportExcel->setFixedHeight(35);
+    btnExportExcel->setCursor(Qt::PointingHandCursor);
+    btnExportExcel->setStyleSheet(R"(
+        QPushButton {
+            background-color: #059669;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0 15px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        QPushButton:hover { background-color: #047857; }
+    )");
+    connect(btnExportExcel, &QPushButton::clicked, this, &MainWindow::onExportExcel);
+    toolbarLayout->addWidget(btnExportExcel);
+
+    rightLayout->addLayout(toolbarLayout);
+
+    tableClients = new QTableWidget();
+    tableClients->setColumnCount(9);
+    tableClients->setHorizontalHeaderLabels({
+        "ID", "Nom", "Prénom", "Email", "Téléphone", "Adresse", "Date", "Statut", "Actions"
+    });
+
+    tableClients->setStyleSheet(R"(
+        QTableWidget {
+            background-color: white;
+            border: none;
+            border-radius: 15px;
+            gridline-color: #e2e8f0;
+        }
+        QHeaderView::section {
+            background-color: #1e40af;
+            color: white;
+            padding: 10px;
+            border: none;
+            font-weight: bold;
+            font-size: 13px;
+        }
+        QTableWidget::item {
+            padding: 8px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        QTableWidget::item:selected {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+    )");
+
+    tableClients->horizontalHeader()->setStretchLastSection(false);
+    tableClients->setSelectionBehavior(QAbstractItemView::SelectRows);
+    tableClients->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    tableClients->setAlternatingRowColors(true);
+
+    tableClients->setColumnWidth(0, 70);
+    tableClients->setColumnWidth(1, 120);
+    tableClients->setColumnWidth(2, 120);
+    tableClients->setColumnWidth(3, 200);
+    tableClients->setColumnWidth(4, 130);
+    tableClients->setColumnWidth(5, 180);
+    tableClients->setColumnWidth(6, 120);
+    tableClients->setColumnWidth(7, 110);
+    tableClients->setColumnWidth(8, 220);
+
+    rightLayout->addWidget(tableClients);
+
+    mainLayout->addWidget(leftPanel);
+    mainLayout->addWidget(rightPanel);
 }
 
-void MainWindow::addMaterial()
+
+
+void MainWindow::createStatistiquesPage()
 {
-    if (nameEdit->text().isEmpty() || quantityEdit->text().isEmpty()) {
-        QMessageBox::warning(this, "Champs requis", "Veuillez remplir le nom et la quantité.");
+    pageStatistiques = new QWidget();
+    pageStatistiques->setStyleSheet("background-color: #f7fafc;");
+
+    QVBoxLayout *layout = new QVBoxLayout(pageStatistiques);
+    layout->setContentsMargins(40, 40, 40, 40);
+    layout->setSpacing(30);
+
+    QHBoxLayout *titleLayout = new QHBoxLayout();
+
+    QLabel *titleLabel = new QLabel("📊 Statistiques - Tableau de Bord");
+    titleLabel->setStyleSheet("font-size: 32px; font-weight: bold; color: #1a202c; background: transparent;");
+    titleLayout->addWidget(titleLabel);
+    titleLayout->addStretch();
+
+    QPushButton *btnGraphique = new QPushButton("📊 Clients par Date");
+    btnGraphique->setFixedSize(200, 45);
+    btnGraphique->setCursor(Qt::PointingHandCursor);
+    btnGraphique->setStyleSheet(R"(
+        QPushButton {
+            background-color: #8b5cf6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: bold;
+        }
+        QPushButton:hover { background-color: #7c3aed; }
+    )");
+    connect(btnGraphique, &QPushButton::clicked, this, &MainWindow::onShowGraphique);
+    titleLayout->addWidget(btnGraphique);
+
+    layout->addLayout(titleLayout);
+
+    QHBoxLayout *cardsLayout = new QHBoxLayout();
+    cardsLayout->setSpacing(20);
+
+    QWidget *card1 = new QWidget();
+    card1->setStyleSheet("QWidget { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #667eea, stop:1 #764ba2); border-radius: 15px; }");
+    card1->setMinimumHeight(150);
+
+    QVBoxLayout *card1Layout = new QVBoxLayout(card1);
+    QLabel *card1Title = new QLabel("👥 Total Clients");
+    card1Title->setStyleSheet("font-size: 18px; color: white; background: transparent; font-weight: bold;");
+    statsClientTotal = new QLabel(QString::number(tableClients->rowCount()));
+    statsClientTotal->setStyleSheet("font-size: 48px; color: white; background: transparent; font-weight: bold;");
+    card1Layout->addWidget(card1Title);
+    card1Layout->addWidget(statsClientTotal);
+    card1Layout->addStretch();
+
+    QWidget *card2 = new QWidget();
+    card2->setStyleSheet("QWidget { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #f093fb, stop:1 #f5576c); border-radius: 15px; }");
+    card2->setMinimumHeight(150);
+
+    QVBoxLayout *card2Layout = new QVBoxLayout(card2);
+    QLabel *card2Title = new QLabel("📦 En Cours");
+    card2Title->setStyleSheet("font-size: 18px; color: white; background: transparent; font-weight: bold;");
+
+    int enCours = 0;
+    for (int i = 0; i < tableClients->rowCount(); ++i) {
+        if (tableClients->item(i, 7) && tableClients->item(i, 7)->text().toLower().contains("cours")) {
+            enCours++;
+        }
+    }
+
+    statsEnCours = new QLabel(QString::number(enCours));
+    statsEnCours->setStyleSheet("font-size: 48px; color: white; background: transparent; font-weight: bold;");
+    card2Layout->addWidget(card2Title);
+    card2Layout->addWidget(statsEnCours);
+    card2Layout->addStretch();
+
+    QWidget *card3 = new QWidget();
+    card3->setStyleSheet("QWidget { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #4facfe, stop:1 #00f2fe); border-radius: 15px; }");
+    card3->setMinimumHeight(150);
+
+    QVBoxLayout *card3Layout = new QVBoxLayout(card3);
+    QLabel *card3Title = new QLabel("✅ Terminées");
+    card3Title->setStyleSheet("font-size: 18px; color: white; background: transparent; font-weight: bold;");
+
+    int terminees = 0;
+    for (int i = 0; i < tableClients->rowCount(); ++i) {
+        if (tableClients->item(i, 7) &&
+            (tableClients->item(i, 7)->text().toLower().contains("terminé") ||
+             tableClients->item(i, 7)->text().toLower().contains("livré"))) {
+            terminees++;
+        }
+    }
+
+    statsTerminees = new QLabel(QString::number(terminees));
+    statsTerminees->setStyleSheet("font-size: 48px; color: white; background: transparent; font-weight: bold;");
+    card3Layout->addWidget(card3Title);
+    card3Layout->addWidget(statsTerminees);
+    card3Layout->addStretch();
+
+    cardsLayout->addWidget(card1);
+    cardsLayout->addWidget(card2);
+    cardsLayout->addWidget(card3);
+    layout->addLayout(cardsLayout);
+
+    QWidget *graphCard = new QWidget();
+    graphCard->setStyleSheet("QWidget { background-color: white; border-radius: 15px; }");
+
+    QVBoxLayout *graphLayout = new QVBoxLayout(graphCard);
+    graphLayout->setContentsMargins(30, 30, 30, 30);
+
+    QLabel *graphTitle = new QLabel("📈 Répartition des Statuts");
+    graphTitle->setStyleSheet("font-size: 24px; font-weight: bold; color: #1a202c; background: transparent;");
+    graphLayout->addWidget(graphTitle);
+
+    statsTable = new QTableWidget();
+    statsTable->setColumnCount(3);
+    statsTable->setHorizontalHeaderLabels({"Statut", "Nombre", "Pourcentage"});
+    statsTable->setStyleSheet(R"(
+        QTableWidget {
+            background-color: transparent;
+            border: none;
+            gridline-color: #e2e8f0;
+        }
+        QHeaderView::section {
+            background-color: #1e40af;
+            color: white;
+            padding: 10px;
+            border: none;
+            font-weight: bold;
+        }
+        QTableWidget::item { padding: 8px; }
+    )");
+
+    QMap<QString, int> statutCounts;
+    int total = tableClients->rowCount();
+
+    for (int i = 0; i < total; ++i) {
+        if (tableClients->item(i, 7)) {
+            QString statut = tableClients->item(i, 7)->text();
+            statutCounts[statut]++;
+        }
+    }
+
+    statsTable->setRowCount(statutCounts.size());
+    int row = 0;
+    for (auto it = statutCounts.begin(); it != statutCounts.end(); ++it) {
+        statsTable->setItem(row, 0, new QTableWidgetItem(it.key()));
+        statsTable->setItem(row, 1, new QTableWidgetItem(QString::number(it.value())));
+        double percentage = (total > 0) ? (it.value() * 100.0 / total) : 0;
+        statsTable->setItem(row, 2, new QTableWidgetItem(QString::number(percentage, 'f', 1) + "%"));
+        row++;
+    }
+
+    statsTable->horizontalHeader()->setStretchLastSection(true);
+    statsTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    statsTable->setMaximumHeight(300);
+
+    graphLayout->addWidget(statsTable);
+    layout->addWidget(graphCard);
+
+    QLabel *infoLabel = new QLabel(R"(
+        <p style='color: #718096; font-size: 14px;'>
+        💡 <b>Note:</b> Statistiques en temps réel<br>
+        📅 <b>Période:</b> Toutes les données<br>
+        🔄 <b>Mise à jour:</b> Automatique
+        </p>
+    )");
+    infoLabel->setStyleSheet("background: transparent;");
+    layout->addWidget(infoLabel);
+    layout->addStretch();
+}
+
+QWidget* MainWindow::createActionButtons(int row)
+{
+    QWidget *widget = new QWidget();
+    QHBoxLayout *layout = new QHBoxLayout(widget);
+    layout->setContentsMargins(5, 2, 5, 2);
+    layout->setSpacing(8);
+
+    QPushButton *btnEdit = new QPushButton("✏️ Modifier");
+    btnEdit->setMinimumWidth(100);
+    btnEdit->setMinimumHeight(35);
+    btnEdit->setStyleSheet(R"(
+        QPushButton {
+            background-color: #f59e0b;
+            color: white;
+            border-radius: 6px;
+            padding: 8px 15px;
+            font-weight: bold;
+            font-size: 13px;
+        }
+        QPushButton:hover { background-color: #d97706; }
+    )");
+    btnEdit->setCursor(Qt::PointingHandCursor);
+
+    QPushButton *btnDelete = new QPushButton("🗑️ Supprimer");
+    btnDelete->setMinimumWidth(110);
+    btnDelete->setMinimumHeight(35);
+    btnDelete->setStyleSheet(R"(
+        QPushButton {
+            background-color: #ef4444;
+            color: white;
+            border-radius: 6px;
+            padding: 8px 15px;
+            font-weight: bold;
+            font-size: 13px;
+        }
+        QPushButton:hover { background-color: #dc2626; }
+    )");
+    btnDelete->setCursor(Qt::PointingHandCursor);
+
+    connect(btnEdit, &QPushButton::clicked, this, [this, row]() { onEditClient(row); });
+    connect(btnDelete, &QPushButton::clicked, this, [this, row]() { onDeleteClient(row); });
+
+    layout->addWidget(btnEdit);
+    layout->addWidget(btnDelete);
+
+    return widget;
+}
+
+void MainWindow::showListeClients()
+{
+    stackedWidget->setCurrentIndex(0);
+}
+
+
+void MainWindow::showStatistiques()
+{
+    updateStatistiques();
+    stackedWidget->setCurrentIndex(1);
+}
+
+void MainWindow::onDeconnexion()
+{
+    QMessageBox::StandardButton reply;
+    reply = QMessageBox::question(this, "Déconnexion",
+                                  "Voulez-vous vraiment vous déconnecter ?",
+                                  QMessageBox::Yes | QMessageBox::No);
+    if (reply == QMessageBox::Yes) {
+        qApp->quit();
+    }
+}
+
+void MainWindow::onAjouterClientSubmit()
+{
+    if (idEdit->text().trimmed().isEmpty()) {
+        QMessageBox::warning(this, "Champ manquant", "⚠️ Le champ ID Client est obligatoire !");
+        idEdit->setFocus();
+        return;
+    }
+    if (nomEdit->text().trimmed().isEmpty()) {
+        QMessageBox::warning(this, "Champ manquant", "⚠️ Le champ Nom est obligatoire !");
+        nomEdit->setFocus();
+        return;
+    }
+    if (prenomEdit->text().trimmed().isEmpty()) {
+        QMessageBox::warning(this, "Champ manquant", "⚠️ Le champ Prénom est obligatoire !");
+        prenomEdit->setFocus();
+        return;
+    }
+    if (emailEdit->text().trimmed().isEmpty()) {
+        QMessageBox::warning(this, "Champ manquant", "⚠️ Le champ Email est obligatoire !");
+        emailEdit->setFocus();
+        return;
+    }
+    if (telEdit->text().trimmed().isEmpty()) {
+        QMessageBox::warning(this, "Champ manquant", "⚠️ Le champ Téléphone est obligatoire !");
+        telEdit->setFocus();
+        return;
+    }
+    if (adresseEdit->text().trimmed().isEmpty()) {
+        QMessageBox::warning(this, "Champ manquant", "⚠️ Le champ Adresse est obligatoire !");
+        adresseEdit->setFocus();
         return;
     }
 
-    Material newMaterial;
-    newMaterial.id = nextId++;
-    newMaterial.name = nameEdit->text();
-    newMaterial.type = typeBox->currentText();
-    newMaterial.quantity = quantityEdit->text().toInt();
-    newMaterial.threshold = thresholdEdit->text().toInt();
-    newMaterial.addedDate = dateEdit->date();
-    newMaterial.supplier = supplierEdit->text();
-    newMaterial.status = statusBox->currentText();
-
-    if (newMaterial.quantity <= newMaterial.threshold && newMaterial.status != "Rupture") {
-        newMaterial.status = "Rupture";
-        statusBox->setCurrentText("Rupture");
+    QString statut;
+    if (radioEnCours->isChecked()) {
+        statut = "En Cours";
+    } else if (radioTermine->isChecked()) {
+        statut = "Terminé";
+    } else if (radioEnAttente->isChecked()) {
+        statut = "En Attente";
     }
 
-    materialsList.append(newMaterial);
-    updateMaterialTable();
-    clearFields();
+    int row = tableClients->rowCount();
+    tableClients->insertRow(row);
 
-    QMessageBox::information(this, "Succès", "Matériel ajouté avec succès !");
+    tableClients->setItem(row, 0, new QTableWidgetItem(idEdit->text().trimmed()));
+    tableClients->setItem(row, 1, new QTableWidgetItem(nomEdit->text().trimmed()));
+    tableClients->setItem(row, 2, new QTableWidgetItem(prenomEdit->text().trimmed()));
+    tableClients->setItem(row, 3, new QTableWidgetItem(emailEdit->text().trimmed()));
+    tableClients->setItem(row, 4, new QTableWidgetItem(telEdit->text().trimmed()));
+    tableClients->setItem(row, 5, new QTableWidgetItem(adresseEdit->text().trimmed()));
+    tableClients->setItem(row, 6, new QTableWidgetItem(dateEdit->date().toString("dd/MM/yyyy")));
+    tableClients->setItem(row, 7, new QTableWidgetItem(statut));
+    tableClients->setCellWidget(row, 8, createActionButtons(row));
+
+    QMessageBox::information(this, "Succès", "✅ Client ajouté avec succès !");
+    onAnnulerAjout();
+    tableClients->scrollToBottom();
 }
 
-void MainWindow::modifyMaterial()
+void MainWindow::onAnnulerAjout()
 {
-    int currentId = idEdit->text().toInt();
-    if (currentId <= 0) {
-        QMessageBox::warning(this, "Erreur", "Sélectionnez un matériel à modifier.");
+    idEdit->clear();
+    nomEdit->clear();
+    prenomEdit->clear();
+    emailEdit->clear();
+    telEdit->clear();
+    adresseEdit->clear();
+    dateEdit->setDate(QDate::currentDate());
+    radioEnCours->setChecked(true);
+}
+
+void MainWindow::onEditClient(int row)
+{
+    idEdit->setText(tableClients->item(row, 0)->text());
+    nomEdit->setText(tableClients->item(row, 1)->text());
+    prenomEdit->setText(tableClients->item(row, 2)->text());
+    emailEdit->setText(tableClients->item(row, 3)->text());
+    telEdit->setText(tableClients->item(row, 4)->text());
+    adresseEdit->setText(tableClients->item(row, 5)->text());
+    dateEdit->setDate(QDate::fromString(tableClients->item(row, 6)->text(), "dd/MM/yyyy"));
+
+    QString statut = tableClients->item(row, 7)->text();
+    if (statut.contains("Cours")) {
+        radioEnCours->setChecked(true);
+    } else if (statut.contains("Terminé") || statut.contains("Livré")) {
+        radioTermine->setChecked(true);
+    } else {
+        radioEnAttente->setChecked(true);
+    }
+
+    tableClients->removeRow(row);
+    idEdit->setFocus();
+}
+
+void MainWindow::onDeleteClient(int row)
+{
+    QMessageBox::StandardButton reply;
+    reply = QMessageBox::question(this, "Confirmation",
+                                  "Voulez-vous vraiment supprimer ce client ?",
+                                  QMessageBox::Yes | QMessageBox::No);
+    if (reply == QMessageBox::Yes) {
+        tableClients->removeRow(row);
+    }
+}
+
+void MainWindow::onSearchClient()
+{
+    QString searchId = searchEdit->text().trimmed();
+    if (searchId.isEmpty()) {
+        QMessageBox::information(this, "Recherche", "Veuillez entrer un ID.");
         return;
     }
 
-    for (Material &material : materialsList) {
-        if (material.id == currentId) {
-            material.name = nameEdit->text();
-            material.type = typeBox->currentText();
-            material.quantity = quantityEdit->text().toInt();
-            material.threshold = thresholdEdit->text().toInt();
-            material.addedDate = dateEdit->date();
-            material.supplier = supplierEdit->text();
-            material.status = statusBox->currentText();
-
-            if (material.quantity <= material.threshold && material.status != "Rupture") {
-                material.status = "Rupture";
-            }
+    bool found = false;
+    for (int i = 0; i < tableClients->rowCount(); ++i) {
+        if (tableClients->item(i, 0)->text() == searchId) {
+            tableClients->selectRow(i);
+            tableClients->scrollToItem(tableClients->item(i, 0));
+            found = true;
             break;
         }
     }
 
-    updateMaterialTable();
-    QMessageBox::information(this, "Succès", "Matériel modifié avec succès !");
+    if (!found) {
+        QMessageBox::information(this, "Recherche", "Aucun client trouvé avec l'ID: " + searchId);
+    }
 }
 
-void MainWindow::deleteMaterial()
+void MainWindow::onSortClients()
 {
-    int row = materialTable->currentRow();
-    if (row < 0) {
-        QMessageBox::information(this, "Information", "Sélectionnez un matériel à supprimer.");
-        return;
-    }
+    QString sortBy = sortComboBox->currentText();
 
-    int id = materialTable->item(row, 0)->text().toInt();
+    if (sortBy == "📊 Trier: Date") {
+        QList<QPair<QDate, int>> dateList;
 
-    for (int i = 0; i < materialsList.size(); ++i) {
-        if (materialsList[i].id == id) {
-            materialsList.removeAt(i);
-            updateMaterialTable();
-            clearFields();
-            QMessageBox::information(this, "Succès", "Matériel supprimé avec succès !");
-            return;
+        for (int i = 0; i < tableClients->rowCount(); ++i) {
+            if (tableClients->item(i, 6)) {
+                QString dateStr = tableClients->item(i, 6)->text();
+                QDate date = QDate::fromString(dateStr, "dd/MM/yyyy");
+                dateList.append(qMakePair(date, i));
+            }
+        }
+
+        std::sort(dateList.begin(), dateList.end(),
+                  [](const QPair<QDate, int> &a, const QPair<QDate, int> &b) {
+                      return a.first < b.first;
+                  });
+
+        QList<QList<QTableWidgetItem*>> rows;
+
+        for (int i = 0; i < tableClients->rowCount(); ++i) {
+            QList<QTableWidgetItem*> row;
+            for (int col = 0; col < 8; ++col) {
+                QTableWidgetItem *item = tableClients->item(i, col);
+                row.append(item ? item->clone() : nullptr);
+            }
+            rows.append(row);
+        }
+
+        tableClients->setRowCount(0);
+
+        for (int i = 0; i < dateList.size(); ++i) {
+            int originalRow = dateList[i].second;
+            tableClients->insertRow(i);
+
+            for (int col = 0; col < 8; ++col) {
+                if (rows[originalRow][col]) {
+                    tableClients->setItem(i, col, rows[originalRow][col]->clone());
+                }
+            }
+
+            tableClients->setCellWidget(i, 8, createActionButtons(i));
+        }
+
+    } else {
+        int column = 0;
+
+        if (sortBy == "📊 Trier: ID") column = 0;
+        else if (sortBy == "📊 Trier: Statut") column = 7;
+
+        tableClients->sortItems(column, Qt::AscendingOrder);
+
+        for (int row = 0; row < tableClients->rowCount(); ++row) {
+            tableClients->setCellWidget(row, 8, createActionButtons(row));
         }
     }
 }
 
-void MainWindow::searchMaterial()
+void MainWindow::onExportPDF()
 {
-    QString searchText = searchEdit->text().trimmed();
-    if (searchText.isEmpty()) {
-        updateMaterialTable();
+    QString fileName = QFileDialog::getSaveFileName(this, "Exporter en PDF", "", "PDF Files (*.pdf)");
+    if (fileName.isEmpty()) return;
+
+    QPrinter printer(QPrinter::HighResolution);
+    printer.setOutputFormat(QPrinter::PdfFormat);
+    printer.setOutputFileName(fileName);
+
+    QTextDocument doc;
+    QString html = "<h1>Liste des Clients - Smart Menuiserie</h1>";
+    html += "<table border='1' cellspacing='0' cellpadding='5' width='100%'>";
+    html += "<tr style='background-color:#1e40af; color:white;'>";
+    html += "<th>ID</th><th>Nom</th><th>Prénom</th><th>Email</th><th>Téléphone</th>";
+    html += "<th>Adresse</th><th>Date</th><th>Statut</th></tr>";
+
+    for (int row = 0; row < tableClients->rowCount(); ++row) {
+        html += "<tr>";
+        for (int col = 0; col < 8; ++col) {
+            html += "<td>" + tableClients->item(row, col)->text() + "</td>";
+        }
+        html += "</tr>";
+    }
+    html += "</table>";
+
+    doc.setHtml(html);
+    doc.print(&printer);
+
+    QMessageBox::information(this, "Export PDF", "✅ Export PDF réussi !");
+}
+
+void MainWindow::onExportExcel()
+{
+    QString fileName = QFileDialog::getSaveFileName(this, "Exporter en Excel", "", "CSV Files (*.csv)");
+    if (fileName.isEmpty()) return;
+
+    QFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::critical(this, "Erreur", "Impossible d'ouvrir le fichier !");
         return;
     }
 
-    materialTable->setRowCount(0);
+    QTextStream out(&file);
+    out << "ID,Nom,Prénom,Email,Téléphone,Adresse,Date,Statut\n";
 
-    for (const Material &material : materialsList) {
-        if (material.name.contains(searchText, Qt::CaseInsensitive) ||
-            material.type.contains(searchText, Qt::CaseInsensitive) ||
-            material.supplier.contains(searchText, Qt::CaseInsensitive)) {
+    for (int row = 0; row < tableClients->rowCount(); ++row) {
+        for (int col = 0; col < 8; ++col) {
+            out << tableClients->item(row, col)->text();
+            if (col < 7) out << ",";
+        }
+        out << "\n";
+    }
 
-            int row = materialTable->rowCount();
-            materialTable->insertRow(row);
+    file.close();
+    QMessageBox::information(this, "Export Excel", "✅ Export Excel (CSV) réussi !");
+}
 
-            materialTable->setItem(row, 0, new QTableWidgetItem(QString::number(material.id)));
-            materialTable->setItem(row, 1, new QTableWidgetItem(material.name));
-            materialTable->setItem(row, 2, new QTableWidgetItem(material.type));
-            materialTable->setItem(row, 3, new QTableWidgetItem(QString::number(material.quantity)));
-            materialTable->setItem(row, 4, new QTableWidgetItem(QString::number(material.threshold)));
-            materialTable->setItem(row, 5, new QTableWidgetItem(material.addedDate.toString("dd/MM/yyyy")));
-            materialTable->setItem(row, 6, new QTableWidgetItem(material.supplier));
-            materialTable->setItem(row, 7, new QTableWidgetItem(material.status));
+void MainWindow::refreshClientTable()
+{
+}
+
+void MainWindow::updateStatistiques()
+{
+    if (!statsClientTotal || !statsEnCours || !statsTerminees || !statsTable) {
+        return;
+    }
+
+    statsClientTotal->setText(QString::number(tableClients->rowCount()));
+
+    int enCours = 0;
+    for (int i = 0; i < tableClients->rowCount(); ++i) {
+        if (tableClients->item(i, 7) &&
+            tableClients->item(i, 7)->text().toLower().contains("cours")) {
+            enCours++;
         }
     }
-}
+    statsEnCours->setText(QString::number(enCours));
 
-void MainWindow::sortMaterial()
-{
-    QString sortCriteria = sortComboBox->currentText();
+    int terminees = 0;
+    for (int i = 0; i < tableClients->rowCount(); ++i) {
+        if (tableClients->item(i, 7) &&
+            (tableClients->item(i, 7)->text().toLower().contains("terminé") ||
+             tableClients->item(i, 7)->text().toLower().contains("livré"))) {
+            terminees++;
+        }
+    }
+    statsTerminees->setText(QString::number(terminees));
 
-    if (sortCriteria == "Trier par ID (croissant)") {
-        std::sort(materialsList.begin(), materialsList.end(),
-                  [](const Material &a, const Material &b) {
-                      return a.id < b.id;
-                  });
-    }
-    else if (sortCriteria == "Trier par ID (décroissant)") {
-        std::sort(materialsList.begin(), materialsList.end(),
-                  [](const Material &a, const Material &b) {
-                      return a.id > b.id;
-                  });
-    }
-    else if (sortCriteria == "Trier par quantité (croissant)") {
-        std::sort(materialsList.begin(), materialsList.end(),
-                  [](const Material &a, const Material &b) {
-                      return a.quantity < b.quantity;
-                  });
-    }
-    else if (sortCriteria == "Trier par quantité (décroissant)") {
-        std::sort(materialsList.begin(), materialsList.end(),
-                  [](const Material &a, const Material &b) {
-                      return a.quantity > b.quantity;
-                  });
-    }
-    else if (sortCriteria == "Trier par type") {
-        std::sort(materialsList.begin(), materialsList.end(),
-                  [](const Material &a, const Material &b) {
-                      return a.type < b.type;
-                  });
-    }
-    else if (sortCriteria == "Trier par nom") {
-        std::sort(materialsList.begin(), materialsList.end(),
-                  [](const Material &a, const Material &b) {
-                      return a.name < b.name;
-                  });
+    QMap<QString, int> statutCounts;
+    int total = tableClients->rowCount();
+
+    for (int i = 0; i < total; ++i) {
+        if (tableClients->item(i, 7)) {
+            QString statut = tableClients->item(i, 7)->text();
+            statutCounts[statut]++;
+        }
     }
 
-    updateMaterialTable();
-
-    // CORRECTION : Message simple sans concaténation problématique
-    QString message = "Liste triée avec succès !\nCritère : " + sortCriteria;
-    QMessageBox::information(this, "Tri effectué", message);
-}
-
-void MainWindow::updateMaterialTable()
-{
-    materialTable->setRowCount(0);
-
-    for (const Material &material : materialsList) {
-        int row = materialTable->rowCount();
-        materialTable->insertRow(row);
-
-        materialTable->setItem(row, 0, new QTableWidgetItem(QString::number(material.id)));
-        materialTable->setItem(row, 1, new QTableWidgetItem(material.name));
-        materialTable->setItem(row, 2, new QTableWidgetItem(material.type));
-        materialTable->setItem(row, 3, new QTableWidgetItem(QString::number(material.quantity)));
-        materialTable->setItem(row, 4, new QTableWidgetItem(QString::number(material.threshold)));
-        materialTable->setItem(row, 5, new QTableWidgetItem(material.addedDate.toString("dd/MM/yyyy")));
-        materialTable->setItem(row, 6, new QTableWidgetItem(material.supplier));
-        materialTable->setItem(row, 7, new QTableWidgetItem(material.status));
+    statsTable->setRowCount(statutCounts.size());
+    int row = 0;
+    for (auto it = statutCounts.begin(); it != statutCounts.end(); ++it) {
+        statsTable->setItem(row, 0, new QTableWidgetItem(it.key()));
+        statsTable->setItem(row, 1, new QTableWidgetItem(QString::number(it.value())));
+        double percentage = (total > 0) ? (it.value() * 100.0 / total) : 0;
+        statsTable->setItem(row, 2, new QTableWidgetItem(QString::number(percentage, 'f', 1) + "%"));
+        row++;
     }
 }
 
-void MainWindow::clearFields()
-{
-    nameEdit->clear();
-    quantityEdit->clear();
-    thresholdEdit->clear();
-    supplierEdit->clear();
-    typeBox->setCurrentIndex(0);
-    statusBox->setCurrentIndex(0);
-    dateEdit->setDate(QDate::currentDate());
-    materialTable->clearSelection();
 
-    idEdit->setText(QString::number(nextId));
+void MainWindow::onShowGraphique()
+{
+    // Collecte des données par mois/année
+    QMap<QString, int> clientsParMois;
+
+    for (int i = 0; i < tableClients->rowCount(); ++i) {
+        if (tableClients->item(i, 6)) {
+            QString dateStr = tableClients->item(i, 6)->text();
+            QDate date = QDate::fromString(dateStr, "dd/MM/yyyy");
+
+            if (date.isValid()) {
+                // Format: "Mois Année" (ex: "Janvier 2026")
+                QLocale locale(QLocale::French);
+                QString moisAnnee = QString("%1 %2")
+                                        .arg(locale.monthName(date.month(), QLocale::LongFormat))
+                                        .arg(date.year());
+
+                clientsParMois[moisAnnee]++;
+            }
+        }
+    }
+
+    QDialog *graphDialog = new QDialog(this);
+    graphDialog->setWindowTitle("📊 Clients par Date d'Inscription");
+    graphDialog->resize(1000, 600);
+    graphDialog->setStyleSheet("background-color: #f7fafc;");
+
+    QVBoxLayout *dialogLayout = new QVBoxLayout(graphDialog);
+    dialogLayout->setContentsMargins(30, 30, 30, 30);
+    dialogLayout->setSpacing(20);
+
+    QLabel *graphTitle = new QLabel("📈 Nombre de Clients Inscrits par Mois");
+    graphTitle->setStyleSheet("font-size: 28px; font-weight: bold; color: #1a202c; background: transparent;");
+    graphTitle->setAlignment(Qt::AlignCenter);
+    dialogLayout->addWidget(graphTitle);
+
+    QWidget *graphWidget = new QWidget();
+    graphWidget->setStyleSheet("QWidget { background-color: white; border-radius: 15px; }");
+    graphWidget->setMinimumHeight(400);
+
+    QVBoxLayout *graphLayout = new QVBoxLayout(graphWidget);
+    graphLayout->setContentsMargins(40, 40, 40, 40);
+    graphLayout->setSpacing(15);
+
+    // Trouver le maximum pour l'échelle
+    int maxClients = 0;
+    for (auto count : clientsParMois.values()) {
+        if (count > maxClients) maxClients = count;
+    }
+
+    // Créer les barres pour chaque mois
+    QList<QString> moisOrdered = clientsParMois.keys();
+
+    for (auto it = clientsParMois.begin(); it != clientsParMois.end(); ++it) {
+        QString mois = it.key();
+        int nbClients = it.value();
+
+        QWidget *barContainer = new QWidget();
+        QHBoxLayout *barLayout = new QHBoxLayout(barContainer);
+        barLayout->setContentsMargins(0, 0, 0, 0);
+        barLayout->setSpacing(10);
+
+        QLabel *moisLabel = new QLabel(mois);
+        moisLabel->setFixedWidth(150);
+        moisLabel->setStyleSheet("font-size: 13px; font-weight: bold; color: #374151; background: transparent;");
+        barLayout->addWidget(moisLabel);
+
+        QWidget *bar = new QWidget();
+        int barWidth = maxClients > 0 ? (nbClients * 500 / maxClients) : 0;
+        bar->setFixedSize(barWidth, 35);
+
+        // Dégradé de couleurs selon le nombre
+        QString barColor;
+        if (nbClients >= 5) {
+            barColor = "#10b981";  // Vert pour beaucoup de clients
+        } else if (nbClients >= 3) {
+            barColor = "#3b82f6";  // Bleu pour moyen
+        } else if (nbClients >= 1) {
+            barColor = "#f59e0b";  // Orange pour peu
+        } else {
+            barColor = "#94a3b8";  // Gris pour aucun
+        }
+
+        bar->setStyleSheet(QString("QWidget { background: %1; border-radius: 8px; }").arg(barColor));
+        barLayout->addWidget(bar);
+
+        QLabel *countLabel = new QLabel(QString::number(nbClients) + " client" + (nbClients > 1 ? "s" : ""));
+        countLabel->setStyleSheet("font-size: 15px; font-weight: bold; color: #1e40af; background: transparent;");
+        barLayout->addWidget(countLabel);
+
+        barLayout->addStretch();
+        graphLayout->addWidget(barContainer);
+    }
+
+    graphLayout->addStretch();
+
+    // Ajouter des statistiques en bas
+    QLabel *statsLabel = new QLabel(QString(
+                                        "📊 <b>Total:</b> %1 client(s) | "
+                                        "📅 <b>Périodes:</b> %2 mois différent(s)"
+                                        ).arg(tableClients->rowCount()).arg(clientsParMois.size()));
+    statsLabel->setStyleSheet("font-size: 14px; color: #64748b; background: transparent; padding: 10px;");
+    statsLabel->setAlignment(Qt::AlignCenter);
+    graphLayout->addWidget(statsLabel);
+
+    dialogLayout->addWidget(graphWidget);
+
+    QPushButton *btnClose = new QPushButton("✖ Fermer");
+    btnClose->setFixedSize(120, 40);
+    btnClose->setCursor(Qt::PointingHandCursor);
+    btnClose->setStyleSheet(R"(
+        QPushButton {
+            background-color: #6b7280;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        QPushButton:hover { background-color: #4b5563; }
+    )");
+    connect(btnClose, &QPushButton::clicked, graphDialog, &QDialog::accept);
+
+    QHBoxLayout *btnLayout = new QHBoxLayout();
+    btnLayout->addStretch();
+    btnLayout->addWidget(btnClose);
+    dialogLayout->addLayout(btnLayout);
+
+    graphDialog->exec();
 }
 
-void MainWindow::exportToPdf()
+MainWindow::~MainWindow()
 {
-    QMessageBox::information(this, "Export PDF", "Fonction d'export PDF à implémenter");
-}
-
-void MainWindow::showStatistics()
-{
-    QMessageBox::information(this, "Statistiques", "Fonction de statistiques à implémenter");
-}
-
-void MainWindow::setupUsersPage()
-{
-    usersPage = new QWidget;
-    usersPage->setStyleSheet("background-color: #f5f6fa;");
-
-    QVBoxLayout *pageLayout = new QVBoxLayout(usersPage);
-    pageLayout->setContentsMargins(30, 30, 30, 30);
-
-    QFrame *emptyFrame = new QFrame;
-    emptyFrame->setStyleSheet(
-        "QFrame {"
-        "    background-color: white;"
-        "    border-radius: 10px;"
-        "    padding: 40px;"
-        "}"
-        );
-
-    QVBoxLayout *emptyLayout = new QVBoxLayout(emptyFrame);
-    emptyLayout->setAlignment(Qt::AlignCenter);
-
-    QLabel *iconLabel = new QLabel("👥");
-    iconLabel->setStyleSheet("font-size: 60px; margin-bottom: 20px;");
-    iconLabel->setAlignment(Qt::AlignCenter);
-
-    QLabel *titleLabel = new QLabel("GESTION DES UTILISATEURS");
-    titleLabel->setStyleSheet("color: #2c3e50; font-size: 24px; font-weight: bold; margin-bottom: 10px;");
-    titleLabel->setAlignment(Qt::AlignCenter);
-
-    QLabel *messageLabel = new QLabel(
-        "Cette page est maintenant vide.\n\n"
-        "➤ La fonctionnalité a été déplacée vers la page Matériel\n"
-        "➤ L'interface des utilisateurs est disponible comme exemple\n"
-        "➤ Vous pouvez réimplémenter cette page si nécessaire\n\n"
-        "Exemple de code disponible dans les fichiers sources."
-        );
-    messageLabel->setStyleSheet("color: #7f8c8d; font-size: 14px; text-align: center; line-height: 1.5;");
-    messageLabel->setAlignment(Qt::AlignCenter);
-
-    emptyLayout->addWidget(iconLabel);
-    emptyLayout->addWidget(titleLabel);
-    emptyLayout->addWidget(messageLabel);
-
-    pageLayout->addWidget(emptyFrame, 1);
-    pagesWidget->addWidget(usersPage);
-}
-
-void MainWindow::setupClientsPage()
-{
-    clientsPage = new QWidget;
-    clientsPage->setStyleSheet("background-color: #f5f6fa;");
-
-    QVBoxLayout *pageLayout = new QVBoxLayout(clientsPage);
-    pageLayout->setContentsMargins(30, 30, 30, 30);
-
-    QFrame *emptyFrame = new QFrame;
-    emptyFrame->setStyleSheet(
-        "QFrame {"
-        "    background-color: white;"
-        "    border-radius: 10px;"
-        "    padding: 40px;"
-        "}"
-        );
-
-    QVBoxLayout *emptyLayout = new QVBoxLayout(emptyFrame);
-    emptyLayout->setAlignment(Qt::AlignCenter);
-
-    QLabel *iconLabel = new QLabel("👨‍💼");
-    iconLabel->setStyleSheet("font-size: 60px; margin-bottom: 20px;");
-    iconLabel->setAlignment(Qt::AlignCenter);
-
-    QLabel *titleLabel = new QLabel("GESTION DES CLIENTS");
-    titleLabel->setStyleSheet("color: #2c3e50; font-size: 24px; font-weight: bold; margin-bottom: 10px;");
-    titleLabel->setAlignment(Qt::AlignCenter);
-
-    QLabel *messageLabel = new QLabel(
-        "Cette page est actuellement vide.\n\n"
-        "➤ À implémenter par : [Nom du collègue]\n"
-        "➤ Fonctionnalités attendues :\n"
-        "   • Gestion de la base clients\n"
-        "   • Suivi des contacts\n"
-        "   • Historique des achats\n"
-        "   • Segmentation clients\n\n"
-        "Utilisez la structure de la page Matériel comme exemple."
-        );
-    messageLabel->setStyleSheet("color: #7f8c8d; font-size: 14px; text-align: center; line-height: 1.5;");
-    messageLabel->setAlignment(Qt::AlignCenter);
-
-    emptyLayout->addWidget(iconLabel);
-    emptyLayout->addWidget(titleLabel);
-    emptyLayout->addWidget(messageLabel);
-
-    pageLayout->addWidget(emptyFrame, 1);
-    pagesWidget->addWidget(clientsPage);
-}
-
-void MainWindow::setupOrdersPage()
-{
-    ordersPage = new QWidget;
-    ordersPage->setStyleSheet("background-color: #f5f6fa;");
-
-    QVBoxLayout *pageLayout = new QVBoxLayout(ordersPage);
-    pageLayout->setContentsMargins(30, 30, 30, 30);
-
-    QFrame *emptyFrame = new QFrame;
-    emptyFrame->setStyleSheet(
-        "QFrame {"
-        "    background-color: white;"
-        "    border-radius: 10px;"
-        "    padding: 40px;"
-        "}"
-        );
-
-    QVBoxLayout *emptyLayout = new QVBoxLayout(emptyFrame);
-    emptyLayout->setAlignment(Qt::AlignCenter);
-
-    QLabel *iconLabel = new QLabel("📦");
-    iconLabel->setStyleSheet("font-size: 60px; margin-bottom: 20px;");
-    iconLabel->setAlignment(Qt::AlignCenter);
-
-    QLabel *titleLabel = new QLabel("GESTION DES COMMANDES");
-    titleLabel->setStyleSheet("color: #2c3e50; font-size: 24px; font-weight: bold; margin-bottom: 10px;");
-    titleLabel->setAlignment(Qt::AlignCenter);
-
-    QLabel *messageLabel = new QLabel(
-        "Cette page est actuellement vide.\n\n"
-        "➤ À implémenter par : [Nom du collègue]\n"
-        "➤ Fonctionnalités attendues :\n"
-        "   • Création de commandes\n"
-        "   • Suivi des livraisons\n"
-        "   • Facturation\n"
-        "   • Statistiques de vente\n\n"
-        "Utilisez la structure de la page Matériel comme exemple."
-        );
-    messageLabel->setStyleSheet("color: #7f8c8d; font-size: 14px; text-align: center; line-height: 1.5;");
-    messageLabel->setAlignment(Qt::AlignCenter);
-
-    emptyLayout->addWidget(iconLabel);
-    emptyLayout->addWidget(titleLabel);
-    emptyLayout->addWidget(messageLabel);
-
-    pageLayout->addWidget(emptyFrame, 1);
-    pagesWidget->addWidget(ordersPage);
-}
-
-void MainWindow::changePage(int index)
-{
-    pagesWidget->setCurrentIndex(index);
-}
-
-QPushButton* MainWindow::createStyledButton(const QString& text, const QString& color) {
-    QPushButton *button = new QPushButton(text);
-    button->setStyleSheet(QString(
-                              "QPushButton {"
-                              "    background-color: %1;"
-                              "    color: white;"
-                              "    border: none;"
-                              "    border-radius: 6px;"
-                              "    padding: 8px 16px;"
-                              "    font-size: 13px;"
-                              "    font-weight: 500;"
-                              "}"
-                              "QPushButton:hover {"
-                              "    opacity: 0.9;"
-                              "}"
-                              ).arg(color));
-
-    button->setCursor(Qt::PointingHandCursor);
-    return button;
 }

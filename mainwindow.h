@@ -3,15 +3,14 @@
 
 #include <QMainWindow>
 #include <QStackedWidget>
-#include <QDate>
-
-class QLineEdit;
-class QComboBox;
-class QTableWidget;
-class QPushButton;
-class QListWidget;
-class QLabel;
-class QDateEdit;
+#include <QLineEdit>
+#include <QTableWidget>
+#include <QPushButton>
+#include <QDateEdit>
+#include <QComboBox>
+#include <QRadioButton>
+#include <QButtonGroup>
+#include <QLabel>
 
 class MainWindow : public QMainWindow
 {
@@ -19,62 +18,65 @@ class MainWindow : public QMainWindow
 
 public:
     MainWindow(QWidget *parent = nullptr);
+    ~MainWindow();
 
 private slots:
-    void addMaterial();
-    void deleteMaterial();
-    void clearFields();
-    void modifyMaterial();
-    void searchMaterial();
-    void changePage(int index);
-    void exportToPdf();
-    void showStatistics();
-    void sortMaterial();
+    void showListeClients();
+    void showStatistiques();
+    void onDeconnexion();
+    void onAjouterClientSubmit();
+    void onAnnulerAjout();
+    void onEditClient(int row);
+    void onDeleteClient(int row);
+    void onSearchClient();
+    void onSortClients();
+    void onExportPDF();
+    void onExportExcel();
+    void onShowGraphique();
 
 private:
-    void setupUsersPage();
-    void setupMaterialPage();
-    void setupClientsPage();
-    void setupOrdersPage();
-    void updateMaterialTable();
-    QPushButton* createStyledButton(const QString& text, const QString& color = "#3498db");
+    void createSidebar();
+    void createListeClientsPage();
+    void createStatistiquesPage();
+    QWidget* createActionButtons(int row);
+    void refreshClientTable();
+    void updateStatistiques();
+    void showListeCommandes() {}
+    void loadCommandesFromClients() {}
+    void onFilterCommandes() {}
+    void onRefreshCommandes() {}
 
-    QListWidget *navList;
-    QStackedWidget *pagesWidget;
+    QStackedWidget *stackedWidget;
+
+    QWidget *pageListeClients;
+    QWidget *pageStatistiques;
 
     QLineEdit *idEdit;
-    QLineEdit *nameEdit;
-    QLineEdit *quantityEdit;
-    QLineEdit *thresholdEdit;
-    QLineEdit *supplierEdit;
-    QLineEdit *searchEdit;
-    QComboBox *typeBox;
-    QComboBox *statusBox;
-    QComboBox *sortComboBox;
+    QLineEdit *nomEdit;
+    QLineEdit *prenomEdit;
+    QLineEdit *emailEdit;
+    QLineEdit *telEdit;
+    QLineEdit *adresseEdit;
     QDateEdit *dateEdit;
-    QTableWidget *materialTable;
-    QPushButton *modifyBtn;
-    QPushButton *exportBtn;
-    QPushButton *statsBtn;
-    QPushButton *sortBtn;
 
-    QWidget *usersPage;
-    QWidget *clientsPage;
-    QWidget *ordersPage;
+    QButtonGroup *statutGroup;
+    QRadioButton *radioEnCours;
+    QRadioButton *radioTermine;
+    QRadioButton *radioEnAttente;
 
-    struct Material {
-        int id;
-        QString name;
-        QString type;
-        int quantity;
-        int threshold;
-        QDate addedDate;
-        QString supplier;
-        QString status;
-    };
+    QTableWidget *tableClients;
 
-    QList<Material> materialsList;
-    int nextId;
+    QLineEdit *searchEdit;
+    QComboBox *sortComboBox;
+
+    QLabel *statsClientTotal;
+    QLabel *statsEnCours;
+    QLabel *statsTerminees;
+    QTableWidget *statsTable;
+
+    QPushButton *btnListeClients;
+    QPushButton *btnStatistiques;
+    QPushButton *btnDeconnexion;
 };
 
-#endif
+#endif // MAINWINDOW_H
