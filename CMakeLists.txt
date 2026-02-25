@@ -10,9 +10,10 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 # Trouver Qt6 ou Qt5
-find_package(Qt6 COMPONENTS Core Gui Widgets PrintSupport QUIET)
+find_package(Qt6 COMPONENTS Core Gui Widgets PrintSupport Sql QUIET)
+
 if (NOT Qt6_FOUND)
-    find_package(Qt5 COMPONENTS Core Gui Widgets PrintSupport REQUIRED)
+    find_package(Qt5 COMPONENTS Core Gui Widgets PrintSupport Sql REQUIRED)
 endif()
 
 # Fichiers sources
@@ -23,7 +24,10 @@ set(PROJECT_SOURCES
 )
 
 # Créer l'exécutable
-add_executable(interfaceG ${PROJECT_SOURCES})
+add_executable(interfaceG ${PROJECT_SOURCES}
+    connection.h
+    connection.cpp
+    interfaceG.pro)
 
 # Lier les bibliothèques Qt
 if (Qt6_FOUND)
@@ -32,6 +36,7 @@ if (Qt6_FOUND)
         Qt6::Gui
         Qt6::Widgets
         Qt6::PrintSupport
+        Qt6::Sql
     )
 else()
     target_link_libraries(interfaceG PRIVATE
@@ -39,5 +44,6 @@ else()
         Qt5::Gui
         Qt5::Widgets
         Qt5::PrintSupport
+        Qt5::Sql
     )
 endif()
