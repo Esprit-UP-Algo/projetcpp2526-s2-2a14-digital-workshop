@@ -1,16 +1,27 @@
 #include "mainwindow.h"
+#include "connection.h"
 #include <QApplication>
+#include <QMessageBox>
 
 int main(int argc, char *argv[])
 {
-    QApplication app(argc, argv);
+    QApplication a(argc, argv);
 
-    // Créer et afficher directement la fenêtre principale
-    MainWindow *mainWindow = new MainWindow();
-    mainWindow->show();
-    mainWindow->showMaximized();  // Afficher en plein écran
+    // Récupérer l'instance unique du Singleton
+    Connection* conn = Connection::getInstance();
 
-    return app.exec();
+    // Tenter la connexion
+    if (!conn->createconnect()) {
+        QMessageBox::critical(nullptr, "Erreur de connexion",
+                              "Impossible de se connecter a la base de donnees !\n"
+                              "Verifiez Oracle XE.");
+        return -1;
+    }
+
+    MainWindow w;
+    w.show();
+
+    return a.exec();
 }
 #include <QApplication>
 #include "mainwindow.h"

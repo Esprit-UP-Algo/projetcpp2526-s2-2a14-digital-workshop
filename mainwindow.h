@@ -11,6 +11,9 @@
 #include <QRadioButton>
 #include <QButtonGroup>
 #include <QLabel>
+#include <QSqlQueryModel>
+#include <QSqlRecord>
+#include "client.h"
 
 class MainWindow : public QMainWindow
 {
@@ -41,16 +44,13 @@ private:
     QWidget* createActionButtons(int row);
     void refreshClientTable();
     void updateStatistiques();
-    void showListeCommandes() {}
-    void loadCommandesFromClients() {}
-    void onFilterCommandes() {}
-    void onRefreshCommandes() {}
 
+    // Stacked pages
     QStackedWidget *stackedWidget;
-
     QWidget *pageListeClients;
     QWidget *pageStatistiques;
 
+    // Formulaire
     QLineEdit *idEdit;
     QLineEdit *nomEdit;
     QLineEdit *prenomEdit;
@@ -58,25 +58,33 @@ private:
     QLineEdit *telEdit;
     QLineEdit *adresseEdit;
     QDateEdit *dateEdit;
-
     QButtonGroup *statutGroup;
     QRadioButton *radioEnCours;
     QRadioButton *radioTermine;
     QRadioButton *radioEnAttente;
 
+    // Table
     QTableWidget *tableClients;
-
     QLineEdit *searchEdit;
     QComboBox *sortComboBox;
 
+    // Stats
     QLabel *statsClientTotal;
     QLabel *statsEnCours;
     QLabel *statsTerminees;
     QTableWidget *statsTable;
 
+    // Sidebar boutons
     QPushButton *btnListeClients;
     QPushButton *btnStatistiques;
     QPushButton *btnDeconnexion;
+
+    // Modèle Client (comme "Etudiant Etmp" dans le cours de la prof)
+    Client Ctmp;
+
+    // Variables pour gérer le mode Ajout / Modification
+    int editingId;
+    bool isEditing;
 };
 
 #endif // MAINWINDOW_H
