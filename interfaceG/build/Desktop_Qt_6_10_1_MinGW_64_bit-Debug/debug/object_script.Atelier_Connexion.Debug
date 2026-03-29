@@ -1,0 +1,10 @@
+debug/Chatwidget.o
+debug/chatbot.o
+debug/client.o
+debug/emailsender.o
+debug/main.o
+debug/mainwindow.o
+debug/connection.o
+debug/moc_Chatwidget.o
+debug/moc_chatbot.o
+debug/moc_mainwindow.o

@@ -1,0 +1,10 @@
+release/Chatwidget.o
+release/chatbot.o
+release/client.o
+release/emailsender.o
+release/main.o
+release/mainwindow.o
+release/connection.o
+release/moc_Chatwidget.o
+release/moc_chatbot.o
+release/moc_mainwindow.o
