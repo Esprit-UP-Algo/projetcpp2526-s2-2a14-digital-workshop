@@ -17,6 +17,7 @@ class QLabel;
 class QDateEdit;
 class QGroupBox;
 class QCheckBox;
+class Matriele;
 
 class UserWindow : public QMainWindow
 {
@@ -112,6 +113,8 @@ private:
 
     int nextId;
     bool databaseEnabled;
+
+    Matriele *matrieleWindow;
 };
 
 #endif

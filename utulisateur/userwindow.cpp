@@ -1,6 +1,6 @@
-// userwindow.cpp
 #include "userwindow.h"
 #include "connection.h"
+#include "matriele.h"
 
 #include <QWidget>
 #include <QLineEdit>
@@ -20,6 +20,7 @@
 #include <QDateEdit>
 #include <QDate>
 #include <algorithm>
+#include <utility>
 #include <QFileDialog>
 #include <QTextStream>
 #include <QSqlQuery>
@@ -35,7 +36,7 @@
 #include <QColor>
 
 UserWindow::UserWindow(QWidget *parent)
-    : QMainWindow(parent), nextId(1), databaseEnabled(false), currentImageHasFace(false)
+    : QMainWindow(parent), nextId(1), databaseEnabled(false), currentImageHasFace(false), matrieleWindow(nullptr)
 {
     setupUI();
 }
@@ -98,6 +99,7 @@ void UserWindow::setupUI()
     // Navigation
     navList = new QListWidget;
     navList->addItem("👥 Utilisateurs");
+    navList->addItem("🛠️ Matériel");
     navList->setCurrentRow(0);
     sidebarLayout->addWidget(navList);
     sidebarLayout->addStretch();
@@ -554,12 +556,19 @@ void UserWindow::setupUI()
 
     pagesWidget->addWidget(usersPage);
 
+    matrieleWindow = new Matriele(this);
+    // Remove the window flags if any so it embeds correctly in QStackedWidget
+    matrieleWindow->setWindowFlags(Qt::Widget);
+    pagesWidget->addWidget(matrieleWindow);
+
+    connect(navList, &QListWidget::currentRowChanged, pagesWidget, &QStackedWidget::setCurrentIndex);
+
     // === ASSEMBLAGE ===
     mainLayout->addWidget(sidebar);
     mainLayout->addWidget(pagesWidget, 1);
 
     setWindowTitle("Système de Gestion - Utilisateurs");
-    resize(1100, 750);
+    resize(1920, 1080);
 
     // Center the window
     QRect screenGeometry = QGuiApplication::primaryScreen()->availableGeometry();
@@ -609,7 +618,7 @@ void UserWindow::setupUI()
         int row = usersTable->currentRow();
         if (row >= 0) {
             int id = usersTable->item(row, 0)->text().toInt();
-            for (const User &user : qAsConst(usersList)) {
+            for (const User &user : std::as_const(usersList)) {
                 if (user.id == id) {
                     idEdit->setText(QString::number(user.id));
                     nameEdit->setText(user.name);
@@ -1041,7 +1050,7 @@ void UserWindow::addUser()
         }
     } else {
         // Check in local list for duplicates
-        for (const User &u : qAsConst(usersList)) {
+        for (const User &u : std::as_const(usersList)) {
             if (u.email == emailEdit->text()) {
                 QMessageBox::warning(this, "Email dupliqué", "Cet email est déjà utilisé.");
                 return;
@@ -1125,7 +1134,7 @@ void UserWindow::modifyUser()
                         return;
                     }
                 } else {
-                    for (const User &u : qAsConst(usersList)) {
+                    for (const User &u : std::as_const(usersList)) {
                         if (u.email == emailEdit->text() && u.id != currentId) {
                             QMessageBox::warning(this, "Email dupliqué", "Cet email est déjà utilisé.");
                             return;
@@ -1147,7 +1156,7 @@ void UserWindow::modifyUser()
                         return;
                     }
                 } else {
-                    for (const User &u : qAsConst(usersList)) {
+                    for (const User &u : std::as_const(usersList)) {
                         if (u.phone == phoneEdit->text() && u.id != currentId) {
                             QMessageBox::warning(this, "Téléphone dupliqué", "Ce numéro de téléphone est déjà utilisé.");
                             return;
@@ -1235,7 +1244,7 @@ void UserWindow::searchUser()
 
     usersTable->setRowCount(0);
 
-    for (const User &user : qAsConst(usersList)) {
+    for (const User &user : std::as_const(usersList)) {
         if (user.name.contains(searchText, Qt::CaseInsensitive) ||
             user.email.contains(searchText, Qt::CaseInsensitive) ||
             user.phone.contains(searchText, Qt::CaseInsensitive) ||
@@ -1281,7 +1290,7 @@ void UserWindow::updateUsersTable()
 {
     usersTable->setRowCount(0);
 
-    for (const User &user : qAsConst(usersList)) {
+    for (const User &user : std::as_const(usersList)) {
         int row = usersTable->rowCount();
         usersTable->insertRow(row);
 
@@ -1334,7 +1343,7 @@ void UserWindow::exportUsers()
     out.setEncoding(QStringConverter::Utf8);
     out << "ID;Nom;Email;Téléphone;Rôle;Statut;Date Création;Couleur Préférée;Nom Animal;Matricule\n";
 
-    for (const User &user : qAsConst(usersList)) {
+    for (const User &user : std::as_const(usersList)) {
         out << user.id << ";"
             << user.name << ";"
             << user.email << ";"

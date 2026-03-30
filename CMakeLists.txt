@@ -7,13 +7,23 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets Sql)
 
 add_executable(GestionCollaborative
     main.cpp
-    loginwindow.h
-    loginwindow.cpp
-    userwindow.cpp
-    userwindow.h
-    connection.h
-    connection.cpp
+    utulisateur/loginwindow.h
+    utulisateur/loginwindow.cpp
+    utulisateur/userwindow.cpp
+    utulisateur/userwindow.h
+    connection/connection.h
+    connection/connection.cpp
+    matriel/matriele.h
+    matriel/matriele.cpp
+    matriel/qrcodegen.hpp
+    matriel/qrcodegen.cpp
 )
 
 target_link_libraries(GestionCollaborative PRIVATE Qt6::Widgets Qt6::Sql)
-set_target_properties(GestionCollaborative PROPERTIES AUTOMOC ON)
+set_target_properties(GestionCollaborative PROPERTIES AUTOMOC ON AUTOUIC ON)
+
+target_include_directories(GestionCollaborative PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/utulisateur
+    ${CMAKE_CURRENT_SOURCE_DIR}/matriel
+    ${CMAKE_CURRENT_SOURCE_DIR}/connection
+)
