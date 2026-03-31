@@ -1213,7 +1213,7 @@ release/Chatwidget.o: ../../Chatwidget.cpp ../../chatwidget.h \
 		../../../../qt/6.10.1/mingw_64/include/QtCore/QJsonArray \
 		../../../../qt/6.10.1/mingw_64/include/QtCore/qjsonarray.h \
 		../../../../qt/6.10.1/mingw_64/include/QtCore/QJsonDocument \
-		../../../../qt/6.10.1/mingw_64/include/QtCore/QDateTime
+		../../../../qt/6.10.1/mingw_64/include/QtGui/QTextCursor
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o release\Chatwidget.o ..\..\Chatwidget.cpp
 
 release/chatbot.o: ../../chatbot.cpp ../../chatbot.h \

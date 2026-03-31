@@ -1,0 +1,26 @@
+# Build directories
+build/
+.qtcreator/
+*.user
+*.user.*
+
+# Qt Creator
+.qmake.stash
+
+# CMake
+CMakeCache.txt
+CMakeLists.txt.user
+
+# Binaires
+*.exe
+*.o
+*.so
+*.dylib
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

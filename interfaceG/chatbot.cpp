@@ -93,7 +93,7 @@ void Chatbot::askQuestion(const QString &question)
         messages.append(v);
 
     QJsonObject body;
-    body["model"]       = "llama-3.1-8b-instant";
+    body["model"] = "llama-3.1-8b-instant";
     body["max_tokens"]  = 250;   // ni trop court, ni trop long
     body["temperature"] = 0.6;
     body["messages"]    = messages;
