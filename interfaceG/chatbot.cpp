@@ -7,7 +7,7 @@
 // 3. Copiez la clé (gsk_...) ici
 // =============================================
 const QString Chatbot::GROQ_API_KEY =
-    "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";
+       "VOTRE_CLE_API_ICI"//
 
 // =============================================
 // PROMPT — Réponses ni trop courtes ni trop longues
