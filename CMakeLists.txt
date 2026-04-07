@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(interfaceG VERSION 2.0.0 LANGUAGES CXX)
+project(commande VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
@@ -9,41 +9,40 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Sql)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Sql)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Sql Network)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Sql Network)
 
 set(PROJECT_SOURCES
     main.cpp
-    matriele.cpp
-    matriele.h
-    matriele.ui
-    qrcodegen.cpp
-    qrcodegen.hpp
-    connection.cpp
-    connection.h
+    mainwindow.h
+    mainwindow.cpp
+    mainwindow.ui
+    commandeservice.h
+    commandeservice.cpp
+    emailjsservice.h
+    emailjsservice.cpp
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    qt_add_executable(interfaceG
+    qt_add_executable(commande
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
-        materiel_oracle.h.h materiel_oracle.h.cpp
     )
 else()
-    add_executable(interfaceG
-        ${PROJECT_SOURCES}
-        materiel_oracle.h.h materiel_oracle.h.cpp
-    )
+    if(ANDROID)
+        add_library(commande SHARED ${PROJECT_SOURCES})
+    else()
+        add_executable(commande ${PROJECT_SOURCES})
+    endif()
 endif()
 
-target_link_libraries(interfaceG PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Sql)
+target_link_libraries(commande PRIVATE
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Sql
+    Qt${QT_VERSION_MAJOR}::Network
+)
 
-if(${QT_VERSION} VERSION_LESS 6.1.0)
-  set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.interfaceG)
-endif()
-
-set_target_properties(interfaceG PROPERTIES
-    ${BUNDLE_ID_OPTION}
+set_target_properties(commande PROPERTIES
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
     MACOSX_BUNDLE TRUE
@@ -51,12 +50,12 @@ set_target_properties(interfaceG PROPERTIES
 )
 
 include(GNUInstallDirs)
-install(TARGETS interfaceG
+install(TARGETS commande
     BUNDLE DESTINATION .
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
 if(QT_VERSION_MAJOR EQUAL 6)
-    qt_finalize_executable(interfaceG)
+    qt_finalize_executable(commande)
 endif()
