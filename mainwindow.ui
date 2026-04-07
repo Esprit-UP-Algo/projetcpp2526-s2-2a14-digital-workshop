@@ -1,0 +1,390 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect><x>0</x><y>0</y><width>1100</width><height>680</height></rect>
+  </property>
+  <property name="windowTitle"><string>Gestion des Commandes</string></property>
+
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QHBoxLayout" name="rootLayout">
+    <property name="spacing"><number>0</number></property>
+    <property name="leftMargin"><number>0</number></property>
+    <property name="topMargin"><number>0</number></property>
+    <property name="rightMargin"><number>0</number></property>
+    <property name="bottomMargin"><number>0</number></property>
+
+    <!-- ═══════ SIDEBAR ═══════ -->
+    <item>
+     <widget class="QWidget" name="sidebar">
+      <property name="minimumWidth"><number>180</number></property>
+      <property name="maximumWidth"><number>180</number></property>
+      <property name="styleSheet">
+       <string>
+        QWidget#sidebar { background-color: #1e2a3a; }
+        QLabel { color: white; }
+       </string>
+      </property>
+      <layout class="QVBoxLayout" name="sidebarLayout">
+       <property name="spacing"><number>4</number></property>
+       <property name="leftMargin"><number>0</number></property>
+       <property name="topMargin"><number>0</number></property>
+       <property name="rightMargin"><number>0</number></property>
+       <property name="bottomMargin"><number>0</number></property>
+       <item>
+        <widget class="QLabel" name="labelLogo">
+         <property name="text"><string>🏠  GESTION</string></property>
+         <property name="alignment"><set>Qt::AlignCenter</set></property>
+         <property name="minimumHeight"><number>60</number></property>
+         <property name="styleSheet">
+          <string>color:white; font-size:16px; font-weight:bold;
+                  background-color:#16202e; padding:10px;</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="navCommandes">
+         <property name="text"><string>🛒  Commandes</string></property>
+         <property name="styleSheet">
+          <string>QPushButton{background-color:#2980b9;color:white;border:none;
+                  padding:12px 16px;text-align:left;font-size:13px;}
+           QPushButton:hover{background-color:#3498db;}</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="navClients">
+         <property name="text"><string>👤  Clients</string></property>
+         <property name="styleSheet">
+          <string>QPushButton{background-color:transparent;color:#aab4be;border:none;
+                  padding:12px 16px;text-align:left;font-size:13px;}
+           QPushButton:hover{background-color:#243447;color:white;}</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer>
+         <property name="orientation"><enum>Qt::Vertical</enum></property>
+         <property name="sizeHint" stdset="0"><size><width>20</width><height>40</height></size></property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+    </item>
+
+    <!-- ═══════ MAIN CONTENT ═══════ -->
+    <item>
+     <layout class="QVBoxLayout" name="contentLayout">
+      <property name="spacing"><number>0</number></property>
+      <property name="leftMargin"><number>0</number></property>
+      <property name="topMargin"><number>0</number></property>
+      <property name="rightMargin"><number>0</number></property>
+      <property name="bottomMargin"><number>0</number></property>
+
+      <!-- TOP BAR -->
+      <item>
+       <widget class="QWidget" name="topBar">
+        <property name="minimumHeight"><number>60</number></property>
+        <property name="styleSheet">
+         <string>QWidget#topBar{background-color:#ffffff;border-bottom:1px solid #dde3ea;}</string>
+        </property>
+        <layout class="QHBoxLayout" name="topBarLayout">
+         <property name="leftMargin"><number>20</number></property>
+         <property name="rightMargin"><number>20</number></property>
+         <item>
+          <widget class="QLabel" name="labelPageTitle">
+           <property name="text"><string>🛒  GESTION DES COMMANDES</string></property>
+           <property name="styleSheet">
+            <string>font-size:18px;font-weight:bold;color:#1e2a3a;</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer>
+           <property name="orientation"><enum>Qt::Horizontal</enum></property>
+           <property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="lineEditSearch">
+           <property name="placeholderText"><string>🔍  Rechercher...</string></property>
+           <property name="minimumWidth"><number>200</number></property>
+           <property name="styleSheet">
+            <string>QLineEdit{background-color:white;color:#222;border:1px solid #ccc;
+                    border-radius:4px;padding:6px 10px;font-size:13px;}</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btnSearch">
+           <property name="text"><string>Chercher</string></property>
+           <property name="styleSheet">
+            <string>QPushButton{background-color:#2980b9;color:white;border:none;
+                    border-radius:4px;padding:7px 16px;font-size:13px;}
+             QPushButton:hover{background-color:#3498db;}</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btnClearSearch">
+           <property name="text"><string>Effacer</string></property>
+           <property name="styleSheet">
+            <string>QPushButton{background-color:#e74c3c;color:white;border:none;
+                    border-radius:4px;padding:7px 16px;font-size:13px;}
+             QPushButton:hover{background-color:#c0392b;}</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+
+      <!-- BODY -->
+      <item>
+       <widget class="QWidget" name="bodyWidget">
+        <property name="styleSheet">
+         <string>QWidget#bodyWidget{background-color:#f0f3f7;}</string>
+        </property>
+        <layout class="QHBoxLayout" name="bodyLayout">
+         <property name="spacing"><number>16</number></property>
+         <property name="leftMargin"><number>20</number></property>
+         <property name="topMargin"><number>20</number></property>
+         <property name="rightMargin"><number>20</number></property>
+         <property name="bottomMargin"><number>20</number></property>
+
+         <!-- FORM PANEL -->
+         <item>
+          <widget class="QWidget" name="formPanel">
+           <property name="minimumWidth"><number>300</number></property>
+           <property name="maximumWidth"><number>340</number></property>
+           <!-- Explicit white bg + black text for ALL children to override inheritance -->
+           <property name="styleSheet">
+            <string>
+             QWidget#formPanel { background-color: white; border-radius: 8px; }
+             QLabel  { color: #444444; font-size: 12px; background: transparent; }
+             QLineEdit {
+               background-color: white;
+               color: #111111;
+               border: 1px solid #cccccc;
+               border-radius: 4px;
+               padding: 6px 8px;
+               font-size: 13px;
+             }
+             QLineEdit:focus { border: 1px solid #2980b9; }
+             QDateEdit {
+               background-color: white;
+               color: #111111;
+               border: 1px solid #cccccc;
+               border-radius: 4px;
+               padding: 6px 8px;
+               font-size: 13px;
+             }
+             QDateEdit:focus { border: 1px solid #2980b9; }
+             QDateEdit::drop-down { border: none; }
+            </string>
+           </property>
+           <layout class="QVBoxLayout" name="formPanelLayout">
+            <property name="leftMargin"><number>20</number></property>
+            <property name="topMargin"><number>20</number></property>
+            <property name="rightMargin"><number>20</number></property>
+            <property name="bottomMargin"><number>20</number></property>
+
+            <item>
+             <widget class="QLabel" name="labelFormTitle">
+              <property name="text"><string>NOUVELLE COMMANDE</string></property>
+              <property name="styleSheet">
+               <string>color:#2980b9;font-size:14px;font-weight:bold;margin-bottom:10px;</string>
+              </property>
+             </widget>
+            </item>
+
+            <item><widget class="QLabel"><property name="text"><string>ID:</string></property></widget></item>
+            <item>
+             <widget class="QLineEdit" name="lineEditId">
+              <property name="placeholderText"><string>ex: 1</string></property>
+             </widget>
+            </item>
+
+            <item><widget class="QLabel"><property name="text"><string>Client:</string></property></widget></item>
+            <item>
+             <widget class="QLineEdit" name="lineEditClientName">
+              <property name="placeholderText"><string>Nom du client</string></property>
+             </widget>
+            </item>
+
+            <item><widget class="QLabel"><property name="text"><string>Produit:</string></property></widget></item>
+            <item>
+             <widget class="QLineEdit" name="lineEditProduct">
+              <property name="placeholderText"><string>Nom du produit</string></property>
+             </widget>
+            </item>
+
+            <item><widget class="QLabel"><property name="text"><string>Quantité:</string></property></widget></item>
+            <item>
+             <widget class="QLineEdit" name="lineEditQuantity">
+              <property name="placeholderText"><string>1</string></property>
+             </widget>
+            </item>
+
+            <item><widget class="QLabel"><property name="text"><string>Prix:</string></property></widget></item>
+            <item>
+             <widget class="QLineEdit" name="lineEditPrice">
+              <property name="placeholderText"><string>0.00</string></property>
+             </widget>
+            </item>
+
+            <item><widget class="QLabel"><property name="text"><string>Date:</string></property></widget></item>
+            <item>
+             <widget class="QDateEdit" name="dateEditOrderDate">
+              <property name="calendarPopup"><bool>true</bool></property>
+              <property name="displayFormat"><string>dd/MM/yyyy</string></property>
+             </widget>
+            </item>
+
+            <item>
+             <spacer>
+              <property name="orientation"><enum>Qt::Vertical</enum></property>
+              <property name="sizeHint" stdset="0"><size><width>20</width><height>10</height></size></property>
+             </spacer>
+            </item>
+
+            <!-- Buttons -->
+            <item>
+             <layout class="QHBoxLayout" name="actionBtnLayout">
+              <item>
+               <widget class="QPushButton" name="btnAdd">
+                <property name="text"><string>✚  Ajouter</string></property>
+                <property name="minimumHeight"><number>36</number></property>
+                <property name="styleSheet">
+                 <string>QPushButton{background-color:#27ae60;color:white;border:none;
+                         border-radius:5px;font-size:13px;}
+                  QPushButton:hover{background-color:#2ecc71;}</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="btnUpdate">
+                <property name="text"><string>✎  Modifier</string></property>
+                <property name="minimumHeight"><number>36</number></property>
+                <property name="styleSheet">
+                 <string>QPushButton{background-color:#2980b9;color:white;border:none;
+                         border-radius:5px;font-size:13px;}
+                  QPushButton:hover{background-color:#3498db;}</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="btnDelete">
+                <property name="text"><string>🗑  Effacer</string></property>
+                <property name="minimumHeight"><number>36</number></property>
+                <property name="styleSheet">
+                 <string>QPushButton{background-color:#95a5a6;color:white;border:none;
+                         border-radius:5px;font-size:13px;}
+                  QPushButton:hover{background-color:#7f8c8d;}</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+
+           </layout>
+          </widget>
+         </item>
+
+         <!-- TABLE PANEL -->
+         <item>
+          <widget class="QWidget" name="tablePanel">
+           <property name="styleSheet">
+            <string>QWidget#tablePanel{background-color:white;border-radius:8px;}</string>
+           </property>
+           <layout class="QVBoxLayout" name="tablePanelLayout">
+            <property name="leftMargin"><number>16</number></property>
+            <property name="topMargin"><number>16</number></property>
+            <property name="rightMargin"><number>16</number></property>
+            <property name="bottomMargin"><number>16</number></property>
+
+            <item>
+             <layout class="QHBoxLayout" name="tableHeaderLayout">
+              <item>
+               <widget class="QLabel" name="labelTableTitle">
+                <property name="text"><string>TABLE DES COMMANDES</string></property>
+                <property name="styleSheet">
+                 <string>font-size:14px;font-weight:bold;color:#1e2a3a;</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer>
+                <property name="orientation"><enum>Qt::Horizontal</enum></property>
+                <property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property>
+               </spacer>
+              </item>
+              <item>
+               <widget class="QPushButton" name="btnRefresh">
+                <property name="text"><string>↻  Actualiser</string></property>
+                <property name="minimumHeight"><number>32</number></property>
+                <property name="styleSheet">
+                 <string>QPushButton{background-color:#16a085;color:white;border:none;
+                         border-radius:5px;padding:6px 14px;font-size:13px;}
+                  QPushButton:hover{background-color:#1abc9c;}</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+
+            <item>
+             <widget class="QTableView" name="tableView">
+              <property name="selectionBehavior"><enum>QAbstractItemView::SelectRows</enum></property>
+              <property name="editTriggers"><set>QAbstractItemView::NoEditTriggers</set></property>
+              <property name="alternatingRowColors"><bool>true</bool></property>
+              <property name="showGrid"><bool>true</bool></property>
+              <property name="styleSheet">
+               <string>
+                QTableView {
+                  border: 1px solid #dde3ea;
+                  font-size: 13px;
+                  color: #111111;
+                  background-color: white;
+                  gridline-color: #eaecef;
+                }
+                QTableView::item { color: #111111; background-color: white; }
+                QTableView::item:alternate { background-color: #f4f6f8; }
+                QTableView::item:selected { background-color: #d6eaf8; color: #1e2a3a; }
+                QHeaderView::section {
+                  background-color: #1e2a3a;
+                  color: white;
+                  padding: 8px;
+                  font-size: 12px;
+                  font-weight: bold;
+                  border: none;
+                }
+               </string>
+              </property>
+             </widget>
+            </item>
+
+           </layout>
+          </widget>
+         </item>
+
+        </layout>
+       </widget>
+      </item>
+
+     </layout>
+    </item>
+
+   </layout>
+  </widget>
+
+  <widget class="QStatusBar" name="statusbar">
+   <property name="styleSheet">
+    <string>QStatusBar{background-color:#1e2a3a;color:#aab4be;font-size:12px;}</string>
+   </property>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
