@@ -1,0 +1,535 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>CommandeWindow</class>
+ <widget class="QMainWindow" name="CommandeWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1467</width>
+    <height>993</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QWidget" name="formPanel">
+    <property name="geometry">
+     <rect>
+      <x>90</x>
+      <y>40</y>
+      <width>361</width>
+      <height>741</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string>
+             QWidget#formPanel { background-color: white; border-radius: 8px; }
+             QLabel  { color: #444444; font-size: 12px; background: transparent; }
+             QLineEdit {
+               background-color: white;
+               color: #111111;
+               border: 1px solid #cccccc;
+               border-radius: 4px;
+               padding: 6px 8px;
+               font-size: 13px;
+             }
+             QLineEdit:focus { border: 1px solid #2980b9; }
+             QDateEdit {
+               background-color: white;
+               color: #111111;
+               border: 1px solid #cccccc;
+               border-radius: 4px;
+               padding: 6px 8px;
+               font-size: 13px;
+             }
+             QDateEdit:focus { border: 1px solid #2980b9; }
+             QDateEdit::drop-down { border: none; }
+            </string>
+    </property>
+    <layout class="QVBoxLayout" name="formPanelLayout">
+     <property name="leftMargin">
+      <number>20</number>
+     </property>
+     <property name="topMargin">
+      <number>20</number>
+     </property>
+     <property name="rightMargin">
+      <number>20</number>
+     </property>
+     <property name="bottomMargin">
+      <number>20</number>
+     </property>
+     <item>
+      <widget class="QLabel" name="labelFormTitle">
+       <property name="styleSheet">
+        <string>color:#2980b9;font-size:14px;font-weight:bold;margin-bottom:10px;</string>
+       </property>
+       <property name="text">
+        <string>NOUVELLE COMMANDE</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>ID:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="id_commande">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+       <property name="placeholderText">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_2">
+       <property name="text">
+        <string>Client:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="combo_client_commande">
+       <property name="styleSheet">
+        <string notr="true">color:black;</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_7">
+       <property name="text">
+        <string>Utilisateur:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="combo_utilisateur_commande">
+       <property name="styleSheet">
+        <string notr="true">color:black;</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_5">
+       <property name="text">
+        <string>Prix totale:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="prix_totale_commande">
+       <property name="placeholderText">
+        <string>0.00</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_8">
+       <property name="text">
+        <string>Mode Paiement :</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="combo_mode_paiement_commande">
+       <property name="styleSheet">
+        <string notr="true">color:black;</string>
+       </property>
+       <item>
+        <property name="text">
+         <string>Especes</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Cheque_bancaire</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Carte_bancaire</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_9">
+       <property name="text">
+        <string>Status :</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="combo_status_commande">
+       <property name="styleSheet">
+        <string notr="true">color:black;</string>
+       </property>
+       <item>
+        <property name="text">
+         <string>En_attente</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>En_cours</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Livree</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Annulee</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="actionBtnLayout">
+       <item>
+        <widget class="QPushButton" name="bt_ajouter_commande">
+         <property name="styleSheet">
+          <string>QPushButton{background-color:#27ae60;color:white;border:none;
+                         border-radius:5px;font-size:13px;}
+                  QPushButton:hover{background-color:#2ecc71;}</string>
+         </property>
+         <property name="text">
+          <string>✚  Ajouter</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="bt_modifier_commande">
+         <property name="styleSheet">
+          <string>QPushButton{background-color:#2980b9;color:white;border:none;
+                         border-radius:5px;font-size:13px;}
+                  QPushButton:hover{background-color:#3498db;}</string>
+         </property>
+         <property name="text">
+          <string>✎  Modifier</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="bt_effacer_commande">
+         <property name="styleSheet">
+          <string>QPushButton{background-color:#95a5a6;color:white;border:none;
+                         border-radius:5px;font-size:13px;}
+                  QPushButton:hover{background-color:#7f8c8d;}</string>
+         </property>
+         <property name="text">
+          <string>🗑  Effacer</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </widget>
+   <widget class="QLineEdit" name="lineEditSearch">
+    <property name="geometry">
+     <rect>
+      <x>890</x>
+      <y>50</y>
+      <width>211</width>
+      <height>33</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string>QLineEdit{background-color:white;color:#222;border:1px solid #ccc;
+                    border-radius:4px;padding:6px 10px;font-size:13px;}</string>
+    </property>
+    <property name="placeholderText">
+     <string>🔍  Rechercher...</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="btnRefresh">
+    <property name="geometry">
+     <rect>
+      <x>770</x>
+      <y>50</y>
+      <width>101</width>
+      <height>32</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string>QPushButton{background-color:#16a085;color:white;border:none;
+                         border-radius:5px;padding:6px 14px;font-size:13px;}
+                  QPushButton:hover{background-color:#1abc9c;}</string>
+    </property>
+    <property name="text">
+     <string>↻  Actualiser</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="btnSearch">
+    <property name="geometry">
+     <rect>
+      <x>1340</x>
+      <y>50</y>
+      <width>84</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string>QPushButton{background-color:#2980b9;color:white;border:none;
+                    border-radius:4px;padding:7px 16px;font-size:13px;}
+             QPushButton:hover{background-color:#3498db;}</string>
+    </property>
+    <property name="text">
+     <string>TRI</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="labelTableTitle">
+    <property name="geometry">
+     <rect>
+      <x>510</x>
+      <y>50</y>
+      <width>165</width>
+      <height>32</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string>font-size:14px;font-weight:bold;color:#1e2a3a;</string>
+    </property>
+    <property name="text">
+     <string>TABLE DES COMMANDES</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="labelPageTitle">
+    <property name="geometry">
+     <rect>
+      <x>430</x>
+      <y>-10</y>
+      <width>276</width>
+      <height>58</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string>font-size:18px;font-weight:bold;color:#1e2a3a;</string>
+    </property>
+    <property name="text">
+     <string>🛒  GESTION DES COMMANDES</string>
+    </property>
+   </widget>
+   <widget class="QTableView" name="tableView_commande">
+    <property name="geometry">
+     <rect>
+      <x>480</x>
+      <y>90</y>
+      <width>961</width>
+      <height>691</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string>
+                QTableView {
+                  border: 1px solid #dde3ea;
+                  font-size: 13px;
+                  color: #111111;
+                  background-color: white;
+                  gridline-color: #eaecef;
+                }
+                QTableView::item { color: #111111; background-color: white; }
+                QTableView::item:alternate { background-color: #f4f6f8; }
+                QTableView::item:selected { background-color: #d6eaf8; color: #1e2a3a; }
+                QHeaderView::section {
+                  background-color: #1e2a3a;
+                  color: white;
+                  padding: 8px;
+                  font-size: 12px;
+                  font-weight: bold;
+                  border: none;
+                }
+               </string>
+    </property>
+    <property name="editTriggers">
+     <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+    </property>
+    <property name="alternatingRowColors">
+     <bool>true</bool>
+    </property>
+    <property name="selectionBehavior">
+     <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+    </property>
+    <property name="showGrid">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QComboBox" name="column">
+    <property name="geometry">
+     <rect>
+      <x>1110</x>
+      <y>50</y>
+      <width>121</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color:black;</string>
+    </property>
+    <item>
+     <property name="text">
+      <string>ID_COMMANDE</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>ID_CLIENT</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>ID_UTILISATEUR</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>DATE_COMMANDE</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>STATUT</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>MODE_PAIEMENT</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>MONTANT_TOTALE</string>
+     </property>
+    </item>
+   </widget>
+   <widget class="QComboBox" name="ordre">
+    <property name="geometry">
+     <rect>
+      <x>1240</x>
+      <y>50</y>
+      <width>81</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color:black;</string>
+    </property>
+    <item>
+     <property name="text">
+      <string>ASC</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>DESC</string>
+     </property>
+    </item>
+   </widget>
+   <widget class="QPushButton" name="stat">
+    <property name="geometry">
+     <rect>
+      <x>640</x>
+      <y>800</y>
+      <width>141</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string>QPushButton{background-color:#2980b9;color:white;border:none;
+                    border-radius:4px;padding:7px 16px;font-size:13px;}
+             QPushButton:hover{background-color:#3498db;}</string>
+    </property>
+    <property name="text">
+     <string>Statistique</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pdf">
+    <property name="geometry">
+     <rect>
+      <x>840</x>
+      <y>800</y>
+      <width>141</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string>QPushButton{background-color:#2980b9;color:white;border:none;
+                    border-radius:4px;padding:7px 16px;font-size:13px;}
+             QPushButton:hover{background-color:#3498db;}</string>
+    </property>
+    <property name="text">
+     <string>PDF</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="Historique">
+    <property name="geometry">
+     <rect>
+      <x>1030</x>
+      <y>800</y>
+      <width>141</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string>QPushButton{background-color:#2980b9;color:white;border:none;
+                    border-radius:4px;padding:7px 16px;font-size:13px;}
+             QPushButton:hover{background-color:#3498db;}</string>
+    </property>
+    <property name="text">
+     <string>Historique</string>
+    </property>
+   </widget>
+   <widget class="QComboBox" name="combo_historique">
+    <property name="geometry">
+     <rect>
+      <x>1030</x>
+      <y>850</y>
+      <width>151</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color:black;</string>
+    </property>
+    <item>
+     <property name="text">
+      <string>Ajout</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Modifier</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Supprimer</string>
+     </property>
+    </item>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1467</width>
+     <height>21</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

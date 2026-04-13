@@ -1,6 +1,8 @@
-#include "userwindow.h"
 #include "connection.h"
 #include "matriele.h"
+#include "clientwindow.h"
+#include "commandes/commandewindow.h"
+#include "userwindow.h"
 
 #include <QWidget>
 #include <QLineEdit>
@@ -36,23 +38,33 @@
 #include <QColor>
 
 UserWindow::UserWindow(QWidget *parent)
-    : QMainWindow(parent), nextId(1), databaseEnabled(false), currentImageHasFace(false), matrieleWindow(nullptr)
+    : QMainWindow(parent), currentImageHasFace(false), nextId(1),
+    databaseEnabled(false), matrieleWindow(nullptr),commandeWindow(nullptr)
 {
     setupUI();
 }
 
+// ← AJOUTEZ EXACTEMENT ICI
+void UserWindow::setCurrentUserId(int id)
+{
+    currentUserId = id;
+    if (clientWindow)
+        clientWindow->setCurrentUserId(id);
+}
+
 void UserWindow::setupUI()
+
+    // ...
+
 {
     QWidget *centralWidget = new QWidget;
     centralWidget->setStyleSheet("background-color: #f5f6fa;");
     setCentralWidget(centralWidget);
 
-    // Layout principal
     QHBoxLayout *mainLayout = new QHBoxLayout(centralWidget);
     mainLayout->setSpacing(0);
     mainLayout->setContentsMargins(0, 0, 0, 0);
 
-    // === SIDEBAR GAUCHE (Navigation) ===
     QFrame *sidebar = new QFrame;
     sidebar->setStyleSheet(
         "QFrame {"
@@ -86,34 +98,34 @@ void UserWindow::setupUI()
         );
     sidebar->setFixedWidth(200);
 
+
+
     QVBoxLayout *sidebarLayout = new QVBoxLayout(sidebar);
     sidebarLayout->setContentsMargins(0, 0, 0, 0);
     sidebarLayout->setSpacing(0);
 
-    // Titre de l'application
     QLabel *appTitle = new QLabel("🏢 GESTION");
     appTitle->setAlignment(Qt::AlignCenter);
     appTitle->setStyleSheet("font-size: 16px; padding: 15px;");
     sidebarLayout->addWidget(appTitle);
 
-    // Navigation
     navList = new QListWidget;
     navList->addItem("👥 Utilisateurs");
     navList->addItem("🛠️ Matériel");
+    navList->addItem("🤝 Clients");
+    navList->addItem("📦 Commandes");
+
     navList->setCurrentRow(0);
     sidebarLayout->addWidget(navList);
     sidebarLayout->addStretch();
 
-    // Footer
     QLabel *footer = new QLabel("v1.0");
     footer->setStyleSheet("color: #7f8c8d; font-size: 10px; padding: 8px;");
     footer->setAlignment(Qt::AlignCenter);
     sidebarLayout->addWidget(footer);
 
-    // === CONTENU PRINCIPAL ===
     pagesWidget = new QStackedWidget;
 
-    // Créer la page utilisateurs
     QWidget *usersPage = new QWidget;
     usersPage->setStyleSheet("background-color: #f5f6fa;");
 
@@ -121,7 +133,6 @@ void UserWindow::setupUI()
     pageLayout->setContentsMargins(20, 20, 20, 20);
     pageLayout->setSpacing(15);
 
-    // === EN-TÊTE ===
     QFrame *header = new QFrame;
     header->setStyleSheet(
         "QFrame {"
@@ -139,7 +150,6 @@ void UserWindow::setupUI()
     headerLayout->addWidget(pageTitle);
     headerLayout->addStretch();
 
-    // Recherche
     searchEdit = new QLineEdit;
     searchEdit->setPlaceholderText("🔍 Rechercher...");
     searchEdit->setStyleSheet(
@@ -157,7 +167,6 @@ void UserWindow::setupUI()
     QPushButton *searchBtn = createStyledButton("Chercher", "#3498db");
     QPushButton *deleteBtn = createStyledButton("Supprimer", "#e74c3c");
 
-    // Boutons de tri
     QPushButton *sortByDateBtn = createStyledButton("📅 Date", "#9b59b6");
     QPushButton *sortByNameBtn = createStyledButton("👤 Nom", "#1abc9c");
 
@@ -166,18 +175,15 @@ void UserWindow::setupUI()
     headerLayout->addWidget(sortByDateBtn);
     headerLayout->addWidget(sortByNameBtn);
 
-    // Bouton Export
     QPushButton *exportBtn = createStyledButton("📊 Export", "#9b59b6");
     headerLayout->addWidget(exportBtn);
     headerLayout->addWidget(deleteBtn);
 
     pageLayout->addWidget(header);
 
-    // === CONTENU (2 colonnes) ===
     QHBoxLayout *contentLayout = new QHBoxLayout;
     contentLayout->setSpacing(15);
 
-    // Colonne gauche - Formulaire
     QFrame *formFrame = new QFrame;
     formFrame->setStyleSheet(
         "QFrame {"
@@ -194,7 +200,6 @@ void UserWindow::setupUI()
     formTitle->setStyleSheet("color: #3498db; font-size: 14px; font-weight: bold; margin-bottom: 8px;");
     formLayout->addWidget(formTitle);
 
-    // Style commun pour tous les champs de saisie
     QString lineEditStyle =
         "QLineEdit {"
         "    color: black;"
@@ -236,7 +241,6 @@ void UserWindow::setupUI()
         "    selection-color: white;"
         "}";
 
-    // Inputs
     idEdit = new QLineEdit;
     idEdit->setReadOnly(true);
     idEdit->setText(QString::number(nextId));
@@ -269,22 +273,17 @@ void UserWindow::setupUI()
     passwordEdit->setEchoMode(QLineEdit::Password);
     passwordEdit->setStyleSheet(lineEditStyle);
 
-    // Admin roles
     roleBox = new QComboBox;
     roleBox->addItems({"Admin Utilisateur", "Admin Matériel", "Admin Clients", "Admin Commandes", "Admin Fournisseur"});
-    roleBox->setStyleSheet(comboBoxStyle);
-
     statusBox = new QComboBox;
     statusBox->addItems({"Actif", "Inactif"});
     statusBox->setStyleSheet(comboBoxStyle);
 
-    // Champ pour la date de création
     creationDateEdit = new QDateEdit;
     creationDateEdit->setDate(QDate::currentDate());
     creationDateEdit->setDisplayFormat("dd/MM/yyyy");
     creationDateEdit->setStyleSheet(lineEditStyle);
 
-    // Security questions section
     QGroupBox *securityGroup = new QGroupBox("Questions de sécurité");
     securityGroup->setStyleSheet(
         "QGroupBox {"
@@ -331,7 +330,6 @@ void UserWindow::setupUI()
     securityLayout->addWidget(carLabel);
     securityLayout->addWidget(carPlateEdit);
 
-    // Image section
     QGroupBox *imageGroup = new QGroupBox("Photo de profil");
     imageGroup->setStyleSheet(
         "QGroupBox {"
@@ -353,7 +351,6 @@ void UserWindow::setupUI()
     QVBoxLayout *imageLayout = new QVBoxLayout(imageGroup);
     imageLayout->setSpacing(8);
 
-    // Image preview
     imagePreviewLabel = new QLabel;
     imagePreviewLabel->setFixedSize(150, 150);
     imagePreviewLabel->setStyleSheet(
@@ -373,13 +370,11 @@ void UserWindow::setupUI()
     previewLayout->addStretch();
     imageLayout->addLayout(previewLayout);
 
-    // Face validation label
     faceValidationLabel = new QLabel("Aucune image sélectionnée");
     faceValidationLabel->setAlignment(Qt::AlignCenter);
     faceValidationLabel->setStyleSheet("color: #7f8c8d; font-size: 11px;");
     imageLayout->addWidget(faceValidationLabel);
 
-    // Image selection buttons
     QHBoxLayout *imageButtonsLayout = new QHBoxLayout;
     selectImageBtn = createStyledButton("📷 Choisir photo", "#3498db");
     clearImageBtn = createStyledButton("🗑️ Effacer", "#95a5a6");
@@ -391,13 +386,6 @@ void UserWindow::setupUI()
     imageButtonsLayout->addWidget(clearImageBtn);
     imageLayout->addLayout(imageButtonsLayout);
 
-    // Add info text
-    QLabel *infoText = new QLabel("⚠️ La photo doit contenir un visage humain clairement visible");
-    infoText->setStyleSheet("color: #e67e22; font-size: 10px;");
-    infoText->setWordWrap(true);
-    imageLayout->addWidget(infoText);
-
-    // Formulaire principal
     QFormLayout *inputForm = new QFormLayout;
     inputForm->setSpacing(6);
     inputForm->setContentsMargins(0, 0, 0, 0);
@@ -412,25 +400,18 @@ void UserWindow::setupUI()
 
     QLabel *idLabel = new QLabel("ID:");
     idLabel->setStyleSheet(labelStyle);
-
     QLabel *nameLabel = new QLabel("Nom:");
     nameLabel->setStyleSheet(labelStyle);
-
     QLabel *emailLabel = new QLabel("Email:");
     emailLabel->setStyleSheet(labelStyle);
-
     QLabel *phoneLabel = new QLabel("Tél:");
     phoneLabel->setStyleSheet(labelStyle);
-
     QLabel *passwordLabel = new QLabel("Mot de passe:");
     passwordLabel->setStyleSheet(labelStyle);
-
     QLabel *roleLabel = new QLabel("Rôle:");
     roleLabel->setStyleSheet(labelStyle);
-
     QLabel *statusLabel = new QLabel("Statut:");
     statusLabel->setStyleSheet(labelStyle);
-
     QLabel *dateLabel = new QLabel("Date:");
     dateLabel->setStyleSheet(labelStyle);
 
@@ -472,11 +453,9 @@ void UserWindow::setupUI()
     formLayout->addWidget(securityGroup);
     formLayout->addWidget(imageGroup);
 
-    // Espace avant les boutons
     QSpacerItem *verticalSpacer = new QSpacerItem(20, 8, QSizePolicy::Minimum, QSizePolicy::Fixed);
     formLayout->addItem(verticalSpacer);
 
-    // Boutons
     QHBoxLayout *formButtons = new QHBoxLayout;
     formButtons->setSpacing(8);
     formButtons->setContentsMargins(0, 5, 0, 0);
@@ -503,7 +482,6 @@ void UserWindow::setupUI()
 
     contentLayout->addWidget(formFrame, 1);
 
-    // Colonne droite - Tableau
     QFrame *tableFrame = new QFrame;
     tableFrame->setStyleSheet(
         "QFrame {"
@@ -557,39 +535,45 @@ void UserWindow::setupUI()
     pagesWidget->addWidget(usersPage);
 
     matrieleWindow = new Matriele(this);
-    // Remove the window flags if any so it embeds correctly in QStackedWidget
     matrieleWindow->setWindowFlags(Qt::Widget);
     pagesWidget->addWidget(matrieleWindow);
 
+    clientWindow = new ClientWindow(this);
+    clientWindow->setWindowFlags(Qt::Widget);
+    clientWindow->setCurrentUserId(currentUserId);
+    pagesWidget->addWidget(clientWindow);
+
+    commandeWindow = new CommandeWindow(this);
+    commandeWindow->setWindowFlags(Qt::Widget);
+    pagesWidget->addWidget(commandeWindow);
+
+
     connect(navList, &QListWidget::currentRowChanged, pagesWidget, &QStackedWidget::setCurrentIndex);
 
-    // === ASSEMBLAGE ===
     mainLayout->addWidget(sidebar);
     mainLayout->addWidget(pagesWidget, 1);
 
     setWindowTitle("Système de Gestion - Utilisateurs");
     resize(1920, 1080);
 
-    // Center the window
     QRect screenGeometry = QGuiApplication::primaryScreen()->availableGeometry();
     int x = (screenGeometry.width() - width()) / 2;
     int y = (screenGeometry.height() - height()) / 2;
     move(x, y);
 
-    // Initialiser l'état de la base de données
+    // Connexion Oracle
     if (Connection::getInstance()->isOpen()) {
         databaseEnabled = true;
         qDebug() << "Chargement des données depuis Oracle...";
         loadUsersFromDatabase();
-
+        // Exemple : si le premier utilisateur de la liste est le connecté
         if (!usersList.isEmpty()) {
-            nextId = usersList.last().id + 1;
-            idEdit->setText(QString::number(nextId));
+            int idConnecte = usersList.first().id;
+            clientWindow->setCurrentUserId(idConnecte);
         }
     } else {
         databaseEnabled = false;
         qDebug() << "Mode hors ligne - utilisation des données locales";
-        // Données de démo (ne seront utilisées que si la base de données n'est pas disponible)
         User user1 = {1, "Admin Principal", "admin@entreprise.com", "Admin Utilisateur", "admin123", "12345678", "Actif", "Bleu", "Max", "123 TUN 456", QDate(2024, 1, 15), QImage(), false};
         User user2 = {2, "Gestionnaire Matériel", "materiel@entreprise.com", "Admin Matériel", "materiel123", "23456789", "Actif", "Vert", "Bella", "234 TUN 567", QDate(2024, 3, 10), QImage(), false};
         User user3 = {3, "Gestionnaire Clients", "clients@entreprise.com", "Admin Clients", "clients123", "34567890", "Actif", "Rouge", "Charlie", "345 TUN 678", QDate(2024, 2, 20), QImage(), false};
@@ -602,16 +586,15 @@ void UserWindow::setupUI()
 
     updateUsersTable();
 
-    // Connexions
-    QObject::connect(addBtn, &QPushButton::clicked, this, &UserWindow::addUser);
-    QObject::connect(deleteBtn, &QPushButton::clicked, this, &UserWindow::deleteUser);
-    QObject::connect(modifyBtn, &QPushButton::clicked, this, &UserWindow::modifyUser);
-    QObject::connect(clearBtn, &QPushButton::clicked, this, &UserWindow::clearFields);
-    QObject::connect(searchBtn, &QPushButton::clicked, this, &UserWindow::searchUser);
+    QObject::connect(addBtn,        &QPushButton::clicked, this, &UserWindow::addUser);
+    QObject::connect(deleteBtn,     &QPushButton::clicked, this, &UserWindow::deleteUser);
+    QObject::connect(modifyBtn,     &QPushButton::clicked, this, &UserWindow::modifyUser);
+    QObject::connect(clearBtn,      &QPushButton::clicked, this, &UserWindow::clearFields);
+    QObject::connect(searchBtn,     &QPushButton::clicked, this, &UserWindow::searchUser);
     QObject::connect(sortByDateBtn, &QPushButton::clicked, this, &UserWindow::sortUsersByDate);
     QObject::connect(sortByNameBtn, &QPushButton::clicked, this, &UserWindow::sortUsersByName);
-    QObject::connect(exportBtn, &QPushButton::clicked, this, &UserWindow::exportUsers);
-    QObject::connect(selectImageBtn, &QPushButton::clicked, this, &UserWindow::selectProfileImage);
+    QObject::connect(exportBtn,     &QPushButton::clicked, this, &UserWindow::exportUsers);
+    QObject::connect(selectImageBtn,&QPushButton::clicked, this, &UserWindow::selectProfileImage);
     QObject::connect(clearImageBtn, &QPushButton::clicked, this, &UserWindow::clearProfileImage);
 
     QObject::connect(usersTable, &QTableWidget::itemSelectionChanged, [this]() {
@@ -629,7 +612,10 @@ void UserWindow::setupUI()
                     int roleIndex = roleBox->findText(user.role);
                     if (roleIndex >= 0) roleBox->setCurrentIndex(roleIndex);
 
-                    int statusIndex = statusBox->findText(user.status);
+                    // Afficher Actif/Inactif (avec majuscule) dans le combo
+                    QString displayStatus = user.status.isEmpty() ? user.status
+                                                                  : user.status.at(0).toUpper() + user.status.mid(1).toLower();
+                    int statusIndex = statusBox->findText(displayStatus);
                     if (statusIndex >= 0) statusBox->setCurrentIndex(statusIndex);
 
                     creationDateEdit->setDate(user.creationDate);
@@ -687,12 +673,11 @@ QPushButton* UserWindow::createStyledButton(const QString& text, const QString& 
                               "    opacity: 0.9;"
                               "}"
                               ).arg(color));
-
     button->setCursor(Qt::PointingHandCursor);
     return button;
 }
 
-// ==================== VALIDATION METHODS ====================
+// ==================== VALIDATION ====================
 
 bool UserWindow::validateName(const QString &name)
 {
@@ -700,31 +685,25 @@ bool UserWindow::validateName(const QString &name)
         QMessageBox::warning(this, "Erreur de validation", "Le nom ne peut pas être vide.");
         return false;
     }
-
     if (name.length() < 2) {
         QMessageBox::warning(this, "Erreur de validation", "Le nom doit contenir au moins 2 caractères.");
         return false;
     }
-
     if (name.length() > 100) {
         QMessageBox::warning(this, "Erreur de validation", "Le nom ne peut pas dépasser 100 caractères.");
         return false;
     }
-
     if (!name[0].isUpper()) {
         QMessageBox::warning(this, "Erreur de validation",
-                             "La première lettre du nom doit être une majuscule.\n"
-                             "Exemple: Jean, Marie, Ahmed");
+                             "La première lettre du nom doit être une majuscule.\nExemple: Jean, Marie, Ahmed");
         return false;
     }
-
     QRegularExpression nameRegex("^[A-Z][A-Za-zÀ-ÿ\\s\\-']+$");
     if (!nameRegex.match(name).hasMatch()) {
         QMessageBox::warning(this, "Erreur de validation",
                              "Le nom doit commencer par une majuscule et ne contenir que des lettres, espaces, tirets et apostrophes.");
         return false;
     }
-
     return true;
 }
 
@@ -734,19 +713,16 @@ bool UserWindow::validateEmail(const QString &email)
         QMessageBox::warning(this, "Erreur de validation", "L'email ne peut pas être vide.");
         return false;
     }
-
-    if (email.length() > 100) {
-        QMessageBox::warning(this, "Erreur de validation", "L'email ne peut pas dépasser 100 caractères.");
+    if (email.length() > 150) {
+        QMessageBox::warning(this, "Erreur de validation", "L'email ne peut pas dépasser 150 caractères.");
         return false;
     }
-
     QRegularExpression emailRegex(R"(^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$)");
     if (!emailRegex.match(email).hasMatch()) {
         QMessageBox::warning(this, "Erreur de validation",
                              "Format d'email invalide. Exemple: utilisateur@domaine.com");
         return false;
     }
-
     return true;
 }
 
@@ -756,43 +732,26 @@ bool UserWindow::validatePassword(const QString &password)
         QMessageBox::warning(this, "Erreur de validation", "Le mot de passe ne peut pas être vide.");
         return false;
     }
-
     if (password.length() < 6) {
         QMessageBox::warning(this, "Erreur de validation", "Le mot de passe doit contenir au moins 6 caractères.");
         return false;
     }
-
     if (password.length() > 128) {
         QMessageBox::warning(this, "Erreur de validation", "Le mot de passe ne peut pas dépasser 128 caractères.");
         return false;
     }
-
     bool hasLetter = false;
-    for (QChar c : password) {
-        if (c.isLetter()) {
-            hasLetter = true;
-            break;
-        }
-    }
-
+    for (QChar c : password) { if (c.isLetter()) { hasLetter = true; break; } }
     if (!hasLetter) {
         QMessageBox::warning(this, "Erreur de validation", "Le mot de passe doit contenir au moins une lettre.");
         return false;
     }
-
     bool hasDigit = false;
-    for (QChar c : password) {
-        if (c.isDigit()) {
-            hasDigit = true;
-            break;
-        }
-    }
-
+    for (QChar c : password) { if (c.isDigit()) { hasDigit = true; break; } }
     if (!hasDigit) {
         QMessageBox::warning(this, "Erreur de validation", "Le mot de passe doit contenir au moins un chiffre.");
         return false;
     }
-
     return true;
 }
 
@@ -802,14 +761,11 @@ bool UserWindow::validatePhone(const QString &phone)
         QMessageBox::warning(this, "Erreur de validation", "Le numéro de téléphone ne peut pas être vide.");
         return false;
     }
-
     if (phone.length() != 8) {
         QMessageBox::warning(this, "Erreur de validation",
-                             "Le numéro de téléphone doit contenir exactement 8 chiffres.\n"
-                             "Exemple: 12345678");
+                             "Le numéro de téléphone doit contenir exactement 8 chiffres.\nExemple: 12345678");
         return false;
     }
-
     for (QChar c : phone) {
         if (!c.isDigit()) {
             QMessageBox::warning(this, "Erreur de validation",
@@ -817,7 +773,6 @@ bool UserWindow::validatePhone(const QString &phone)
             return false;
         }
     }
-
     return true;
 }
 
@@ -827,41 +782,34 @@ bool UserWindow::validateSecurityAnswers()
         QMessageBox::warning(this, "Erreur de validation", "Veuillez indiquer votre couleur préférée.");
         return false;
     }
-
     if (petNameEdit->text().isEmpty()) {
         QMessageBox::warning(this, "Erreur de validation", "Veuillez indiquer le nom de votre animal de compagnie.");
         return false;
     }
-
     if (carPlateEdit->text().isEmpty()) {
         QMessageBox::warning(this, "Erreur de validation", "Veuillez indiquer la matricule de votre voiture.");
         return false;
     }
-
     if (carPlateEdit->text().length() < 5) {
         QMessageBox::warning(this, "Erreur de validation", "La matricule de la voiture est trop courte.");
         return false;
     }
-
     return true;
 }
 
+// FIX: non-bloquante — photo optionnelle, détection informative seulement
 bool UserWindow::validateFaceImage(const QImage &image)
 {
     if (image.isNull()) {
-        QMessageBox::warning(this, "Erreur de validation",
-                             "Veuillez sélectionner une photo de profil.");
-        return false;
+        currentImageHasFace = false;
+        return true; // photo optionnelle
     }
-
-    if (!detectFace(image)) {
-        QMessageBox::warning(this, "Erreur de validation",
-                             "La photo doit contenir un visage humain.\n"
-                             "Veuillez sélectionner une photo où le visage est clairement visible.");
-        return false;
+    currentImageHasFace = detectFace(image);
+    if (!currentImageHasFace) {
+        faceValidationLabel->setText("⚠️ Photo acceptée (visage non confirmé)");
+        faceValidationLabel->setStyleSheet("color: #f39c12; font-size: 11px; font-weight: bold;");
     }
-
-    return true;
+    return true; // toujours valide, même sans visage détecté
 }
 
 bool UserWindow::detectFace(const QImage &image)
@@ -869,7 +817,6 @@ bool UserWindow::detectFace(const QImage &image)
     if (image.isNull()) return false;
 
     QImage processed = preprocessImage(image);
-
     int width = processed.width();
     int height = processed.height();
 
@@ -886,20 +833,14 @@ bool UserWindow::detectFace(const QImage &image)
     for (int y = 0; y < height; y += step) {
         for (int x = 0; x < width; x += step) {
             QColor pixel = processed.pixelColor(x, y);
-            int r = pixel.red();
-            int g = pixel.green();
-            int b = pixel.blue();
-
+            int r = pixel.red(), g = pixel.green(), b = pixel.blue();
             if (r > g && r > b && r > 60 && g > 40 && b > 30) {
-                if (abs(r - g) < 80 && abs(r - b) < 80) {
-                    skinPixelCount++;
-                }
+                if (abs(r - g) < 80 && abs(r - b) < 80) skinPixelCount++;
             }
         }
     }
 
     float skinPercentage = (float)skinPixelCount / (totalPixels / (step * step)) * 100;
-
     bool hasFaceLikeRegion = skinPercentage > 5.0f && skinPercentage < 40.0f;
     bool hasGoodAspectRatio = (float)width / height > 0.6f && (float)width / height < 0.9f;
 
@@ -921,28 +862,19 @@ bool UserWindow::detectFace(const QImage &image)
 QImage UserWindow::preprocessImage(const QImage &image)
 {
     QImage processed = image.convertToFormat(QImage::Format_RGB32);
-
-    if (processed.width() > 400 || processed.height() > 400) {
+    if (processed.width() > 400 || processed.height() > 400)
         processed = processed.scaled(400, 400, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-    }
 
     QImage result(processed.size(), QImage::Format_RGB32);
-
     for (int y = 0; y < processed.height(); ++y) {
         for (int x = 0; x < processed.width(); ++x) {
             QColor color = processed.pixelColor(x, y);
-            int r = color.red();
-            int g = color.green();
-            int b = color.blue();
-
-            r = qBound(0, (int)((r - 128) * 1.2 + 128), 255);
-            g = qBound(0, (int)((g - 128) * 1.2 + 128), 255);
-            b = qBound(0, (int)((b - 128) * 1.2 + 128), 255);
-
+            int r = qBound(0, (int)((color.red()   - 128) * 1.2 + 128), 255);
+            int g = qBound(0, (int)((color.green() - 128) * 1.2 + 128), 255);
+            int b = qBound(0, (int)((color.blue()  - 128) * 1.2 + 128), 255);
             result.setPixelColor(x, y, QColor(r, g, b));
         }
     }
-
     return result;
 }
 
@@ -952,7 +884,6 @@ void UserWindow::selectProfileImage()
                                                     "Sélectionner une photo de profil",
                                                     "",
                                                     "Images (*.png *.jpg *.jpeg *.bmp)");
-
     if (fileName.isEmpty()) return;
 
     QImage image;
@@ -960,17 +891,12 @@ void UserWindow::selectProfileImage()
         QMessageBox::warning(this, "Erreur", "Impossible de charger l'image.");
         return;
     }
-
     if (image.width() < 100 || image.height() < 100) {
-        QMessageBox::warning(this, "Erreur",
-                             "L'image est trop petite (minimum 100x100 pixels).\n"
-                             "Veuillez sélectionner une image plus grande.");
+        QMessageBox::warning(this, "Erreur", "L'image est trop petite (minimum 100x100 pixels).");
         return;
     }
-
     if (image.width() > 2000 || image.height() > 2000) {
-        QMessageBox::warning(this, "Erreur",
-                             "L'image est trop grande (maximum 2000x2000 pixels).");
+        QMessageBox::warning(this, "Erreur", "L'image est trop grande (maximum 2000x2000 pixels).");
         return;
     }
 
@@ -989,7 +915,6 @@ void UserWindow::selectProfileImage()
     painter.end();
 
     imagePreviewLabel->setPixmap(circularPixmap);
-
     currentImageHasFace = detectFace(image);
 }
 
@@ -1003,53 +928,37 @@ void UserWindow::clearProfileImage()
     faceValidationLabel->setStyleSheet("color: #7f8c8d; font-size: 11px;");
 }
 
-// ==================== FONCTIONS DE LA PAGE UTILISATEURS ====================
+// ==================== FONCTIONS UTILISATEURS ====================
 
 void UserWindow::addUser()
 {
-    if (!validateName(nameEdit->text())) {
-        return;
-    }
+    if (!validateName(nameEdit->text()))          return;
+    if (!validateEmail(emailEdit->text()))         return;
+    if (!validatePhone(phoneEdit->text()))         return;
+    if (!validatePassword(passwordEdit->text()))   return;
+    if (!validateSecurityAnswers())                return;
 
-    if (!validateEmail(emailEdit->text())) {
-        return;
-    }
+    // Photo optionnelle — non-bloquante
+    validateFaceImage(currentProfileImage);
 
-    if (!validatePhone(phoneEdit->text())) {
-        return;
-    }
-
-    if (!validatePassword(passwordEdit->text())) {
-        return;
-    }
-
-    if (!validateSecurityAnswers()) {
-        return;
-    }
-
-    if (!validateFaceImage(currentProfileImage)) {
-        return;
-    }
-
-    // Check for duplicate email in database
     if (databaseEnabled) {
         QSqlDatabase db = Connection::getInstance()->getDatabase();
         QSqlQuery query(db);
-        query.prepare("SELECT COUNT(*) FROM UTILISATEURS WHERE EMAIL = :email");
+
+        query.prepare("SELECT COUNT(*) FROM UTILISATEUR WHERE EMAIL = :email");
         query.bindValue(":email", emailEdit->text());
         if (query.exec() && query.next() && query.value(0).toInt() > 0) {
             QMessageBox::warning(this, "Email dupliqué", "Cet email est déjà utilisé.");
             return;
         }
 
-        query.prepare("SELECT COUNT(*) FROM UTILISATEURS WHERE TELEPHONE = :phone");
+        query.prepare("SELECT COUNT(*) FROM UTILISATEUR WHERE TELEPHONE = :phone");
         query.bindValue(":phone", phoneEdit->text());
         if (query.exec() && query.next() && query.value(0).toInt() > 0) {
             QMessageBox::warning(this, "Téléphone dupliqué", "Ce numéro de téléphone est déjà utilisé.");
             return;
         }
     } else {
-        // Check in local list for duplicates
         for (const User &u : std::as_const(usersList)) {
             if (u.email == emailEdit->text()) {
                 QMessageBox::warning(this, "Email dupliqué", "Cet email est déjà utilisé.");
@@ -1063,30 +972,39 @@ void UserWindow::addUser()
     }
 
     User newUser;
-    newUser.id = nextId++;
-    newUser.name = nameEdit->text();
-    newUser.email = emailEdit->text();
-    newUser.phone = phoneEdit->text();
-    newUser.password = passwordEdit->text();
-    newUser.role = roleBox->currentText();
-    newUser.status = statusBox->currentText();
+
+    if (databaseEnabled) {
+        QSqlDatabase db = Connection::getInstance()->getDatabase();
+        QSqlQuery qMax(db);
+        qMax.exec("SELECT NVL(MAX(ID_UTILISATEUR),0) FROM UTILISATEUR");
+        newUser.id = qMax.next() ? qMax.value(0).toInt() + 1 : nextId;
+    } else {
+        newUser.id = nextId;
+    }
+    nextId = newUser.id + 1;
+
+    newUser.name         = nameEdit->text();
+    newUser.email        = emailEdit->text();
+    newUser.phone        = phoneEdit->text();
+    newUser.password     = passwordEdit->text();
+    newUser.role         = roleBox->currentText();
+    newUser.status       = statusBox->currentText();
     newUser.creationDate = creationDateEdit->date();
-    newUser.favoriteColor = favoriteColorEdit->text();
-    newUser.petName = petNameEdit->text();
-    newUser.carPlate = carPlateEdit->text();
+    newUser.favoriteColor= favoriteColorEdit->text();
+    newUser.petName      = petNameEdit->text();
+    newUser.carPlate     = carPlateEdit->text();
     newUser.profileImage = currentProfileImage;
-    newUser.hasFace = currentImageHasFace;
+    newUser.hasFace      = currentImageHasFace;
 
     if (databaseEnabled) {
         saveUserToDatabase(newUser);
-        loadUsersFromDatabase(); // Refresh the list
+        loadUsersFromDatabase();
     } else {
         usersList.append(newUser);
     }
 
     updateUsersTable();
     clearFields();
-
     QMessageBox::information(this, "Succès", QString("Utilisateur '%1' ajouté avec succès !").arg(newUser.name));
 }
 
@@ -1098,35 +1016,23 @@ void UserWindow::modifyUser()
         return;
     }
 
-    if (!validateName(nameEdit->text())) {
-        return;
-    }
+    if (!validateName(nameEdit->text()))    return;
+    if (!validateEmail(emailEdit->text()))  return;
+    if (!validatePhone(phoneEdit->text()))  return;
+    if (!validateSecurityAnswers())         return;
 
-    if (!validateEmail(emailEdit->text())) {
-        return;
-    }
+    // Photo optionnelle — non-bloquante
+    if (!currentProfileImage.isNull())
+        validateFaceImage(currentProfileImage);
 
-    if (!validatePhone(phoneEdit->text())) {
-        return;
-    }
-
-    if (!validateSecurityAnswers()) {
-        return;
-    }
-
-    if (!currentProfileImage.isNull() && !validateFaceImage(currentProfileImage)) {
-        return;
-    }
-
-    // Find and update the user
     for (int i = 0; i < usersList.size(); ++i) {
         if (usersList[i].id == currentId) {
-            // Check for duplicate email if changed
+
             if (usersList[i].email != emailEdit->text()) {
                 if (databaseEnabled) {
                     QSqlDatabase db = Connection::getInstance()->getDatabase();
                     QSqlQuery query(db);
-                    query.prepare("SELECT COUNT(*) FROM UTILISATEURS WHERE EMAIL = :email AND ID != :id");
+                    query.prepare("SELECT COUNT(*) FROM UTILISATEUR WHERE EMAIL = :email AND ID_UTILISATEUR != :id");
                     query.bindValue(":email", emailEdit->text());
                     query.bindValue(":id", currentId);
                     if (query.exec() && query.next() && query.value(0).toInt() > 0) {
@@ -1143,12 +1049,11 @@ void UserWindow::modifyUser()
                 }
             }
 
-            // Check for duplicate phone if changed
             if (usersList[i].phone != phoneEdit->text()) {
                 if (databaseEnabled) {
                     QSqlDatabase db = Connection::getInstance()->getDatabase();
                     QSqlQuery query(db);
-                    query.prepare("SELECT COUNT(*) FROM UTILISATEURS WHERE TELEPHONE = :phone AND ID != :id");
+                    query.prepare("SELECT COUNT(*) FROM UTILISATEUR WHERE TELEPHONE = :phone AND ID_UTILISATEUR != :id");
                     query.bindValue(":phone", phoneEdit->text());
                     query.bindValue(":id", currentId);
                     if (query.exec() && query.next() && query.value(0).toInt() > 0) {
@@ -1165,32 +1070,30 @@ void UserWindow::modifyUser()
                 }
             }
 
-            usersList[i].name = nameEdit->text();
+            usersList[i].name  = nameEdit->text();
             usersList[i].email = emailEdit->text();
             usersList[i].phone = phoneEdit->text();
 
             if (!passwordEdit->text().isEmpty()) {
-                if (!validatePassword(passwordEdit->text())) {
-                    return;
-                }
+                if (!validatePassword(passwordEdit->text())) return;
                 usersList[i].password = passwordEdit->text();
             }
 
-            usersList[i].role = roleBox->currentText();
-            usersList[i].status = statusBox->currentText();
+            usersList[i].role         = roleBox->currentText();
+            usersList[i].status       = statusBox->currentText();
             usersList[i].creationDate = creationDateEdit->date();
-            usersList[i].favoriteColor = favoriteColorEdit->text();
-            usersList[i].petName = petNameEdit->text();
-            usersList[i].carPlate = carPlateEdit->text();
+            usersList[i].favoriteColor= favoriteColorEdit->text();
+            usersList[i].petName      = petNameEdit->text();
+            usersList[i].carPlate     = carPlateEdit->text();
 
             if (!currentProfileImage.isNull()) {
                 usersList[i].profileImage = currentProfileImage;
-                usersList[i].hasFace = currentImageHasFace;
+                usersList[i].hasFace      = currentImageHasFace;
             }
 
             if (databaseEnabled) {
                 updateUserInDatabase(usersList[i]);
-                loadUsersFromDatabase(); // Refresh the list
+                loadUsersFromDatabase();
             }
             break;
         }
@@ -1219,13 +1122,10 @@ void UserWindow::deleteUser()
 
     if (databaseEnabled) {
         deleteUserFromDatabase(id);
-        loadUsersFromDatabase(); // Refresh the list
+        loadUsersFromDatabase();
     } else {
         for (int i = 0; i < usersList.size(); ++i) {
-            if (usersList[i].id == id) {
-                usersList.removeAt(i);
-                break;
-            }
+            if (usersList[i].id == id) { usersList.removeAt(i); break; }
         }
     }
 
@@ -1237,22 +1137,16 @@ void UserWindow::deleteUser()
 void UserWindow::searchUser()
 {
     QString searchText = searchEdit->text().trimmed();
-    if (searchText.isEmpty()) {
-        updateUsersTable();
-        return;
-    }
+    if (searchText.isEmpty()) { updateUsersTable(); return; }
 
     usersTable->setRowCount(0);
-
     for (const User &user : std::as_const(usersList)) {
-        if (user.name.contains(searchText, Qt::CaseInsensitive) ||
+        if (user.name.contains(searchText,  Qt::CaseInsensitive) ||
             user.email.contains(searchText, Qt::CaseInsensitive) ||
             user.phone.contains(searchText, Qt::CaseInsensitive) ||
-            user.role.contains(searchText, Qt::CaseInsensitive)) {
-
+            user.role.contains(searchText,  Qt::CaseInsensitive)) {
             int row = usersTable->rowCount();
             usersTable->insertRow(row);
-
             usersTable->setItem(row, 0, new QTableWidgetItem(QString::number(user.id)));
             usersTable->setItem(row, 1, new QTableWidgetItem(user.name));
             usersTable->setItem(row, 2, new QTableWidgetItem(user.email));
@@ -1261,10 +1155,8 @@ void UserWindow::searchUser()
             usersTable->setItem(row, 5, new QTableWidgetItem(user.creationDate.toString("dd/MM/yyyy")));
         }
     }
-
-    if (usersTable->rowCount() == 0) {
+    if (usersTable->rowCount() == 0)
         QMessageBox::information(this, "Recherche", "Aucun utilisateur trouvé.");
-    }
 }
 
 void UserWindow::clearFields()
@@ -1280,20 +1172,16 @@ void UserWindow::clearFields()
     statusBox->setCurrentIndex(0);
     creationDateEdit->setDate(QDate::currentDate());
     usersTable->clearSelection();
-
     clearProfileImage();
-
     idEdit->setText(QString::number(nextId));
 }
 
 void UserWindow::updateUsersTable()
 {
     usersTable->setRowCount(0);
-
     for (const User &user : std::as_const(usersList)) {
         int row = usersTable->rowCount();
         usersTable->insertRow(row);
-
         usersTable->setItem(row, 0, new QTableWidgetItem(QString::number(user.id)));
         usersTable->setItem(row, 1, new QTableWidgetItem(user.name));
         usersTable->setItem(row, 2, new QTableWidgetItem(user.email));
@@ -1308,7 +1196,6 @@ void UserWindow::sortUsersByDate()
     std::sort(usersList.begin(), usersList.end(), [](const User &a, const User &b) {
         return a.creationDate < b.creationDate;
     });
-
     updateUsersTable();
     QMessageBox::information(this, "Tri effectué", "Liste triée par date de création");
 }
@@ -1316,12 +1203,9 @@ void UserWindow::sortUsersByDate()
 void UserWindow::sortUsersByName()
 {
     std::sort(usersList.begin(), usersList.end(), [](const User &a, const User &b) {
-        if (a.name == b.name) {
-            return a.id < b.id;
-        }
+        if (a.name == b.name) return a.id < b.id;
         return a.name < b.name;
     });
-
     updateUsersTable();
     QMessageBox::information(this, "Tri effectué", "Liste triée par nom");
 }
@@ -1329,9 +1213,7 @@ void UserWindow::sortUsersByName()
 void UserWindow::exportUsers()
 {
     QString fileName = QFileDialog::getSaveFileName(this, "Exporter les utilisateurs", "", "Fichiers CSV (*.csv)");
-    if (fileName.isEmpty()) {
-        return;
-    }
+    if (fileName.isEmpty()) return;
 
     QFile file(fileName);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
@@ -1342,53 +1224,50 @@ void UserWindow::exportUsers()
     QTextStream out(&file);
     out.setEncoding(QStringConverter::Utf8);
     out << "ID;Nom;Email;Téléphone;Rôle;Statut;Date Création;Couleur Préférée;Nom Animal;Matricule\n";
-
     for (const User &user : std::as_const(usersList)) {
-        out << user.id << ";"
-            << user.name << ";"
-            << user.email << ";"
-            << user.phone << ";"
-            << user.role << ";"
-            << user.status << ";"
+        out << user.id << ";" << user.name << ";" << user.email << ";"
+            << user.phone << ";" << user.role << ";" << user.status << ";"
             << user.creationDate.toString("dd/MM/yyyy") << ";"
-            << user.favoriteColor << ";"
-            << user.petName << ";"
-            << user.carPlate << "\n";
+            << user.favoriteColor << ";" << user.petName << ";" << user.carPlate << "\n";
     }
-
     file.close();
     QMessageBox::information(this, "Succès", QString("%1 utilisateurs exportés avec succès !").arg(usersList.size()));
 }
 
-// ==================== FONCTIONS D'ACCÈS À LA BASE DE DONNÉES ====================
+// ==================== BASE DE DONNÉES ====================
 
 void UserWindow::loadUsersFromDatabase()
 {
     if (!databaseEnabled) return;
 
     QSqlDatabase db = Connection::getInstance()->getDatabase();
-    QSqlQuery query(db);
+    if (!db.isOpen()) {
+        QMessageBox::warning(this, "Erreur Base de données", "Base de données non connectée !");
+        return;
+    }
 
-    // Load all users with all fields
-    if (query.exec("SELECT ID, NOM, EMAIL, TELEPHONE, MOT_DE_PASSE, ROLE, STATUT, "
+    QSqlQuery query(db);
+    if (query.exec("SELECT ID_UTILISATEUR, NOM, EMAIL, TELEPHONE, MOT_DE_PASSE, ROLE, STATUT, "
                    "DATE_CREATION, COULEUR_FAVORITE, NOM_ANIMAL, MATRICULE_VOITURE, "
-                   "PHOTO_PROFIL, A_VISAGE FROM UTILISATEURS ORDER BY ID")) {
+                   "PHOTO_PROFIL, A_VISAGE FROM UTILISATEUR ORDER BY ID_UTILISATEUR")) {
         usersList.clear();
         while (query.next()) {
             User user;
-            user.id = query.value(0).toInt();
-            user.name = query.value(1).toString();
-            user.email = query.value(2).toString();
-            user.phone = query.value(3).toString();
-            user.password = query.value(4).toString();
-            user.role = query.value(5).toString();
-            user.status = query.value(6).toString();
-            user.creationDate = query.value(7).toDate();
+            user.id           = query.value(0).toInt();
+            user.name         = query.value(1).toString();
+            user.email        = query.value(2).toString();
+            user.phone        = query.value(3).toString();
+            user.password     = query.value(4).toString();
+            user.role         = query.value(5).toString();
+            // Convertir 'actif' -> 'Actif' pour affichage
+            QString rawStatus = query.value(6).toString();
+            user.status       = rawStatus.isEmpty() ? rawStatus
+                                              : rawStatus.at(0).toUpper() + rawStatus.mid(1).toLower();
+            user.creationDate  = query.value(7).toDate();
             user.favoriteColor = query.value(8).toString();
-            user.petName = query.value(9).toString();
-            user.carPlate = query.value(10).toString();
+            user.petName       = query.value(9).toString();
+            user.carPlate      = query.value(10).toString();
 
-            // Load image from BLOB if exists
             QByteArray imageData = query.value(11).toByteArray();
             if (!imageData.isEmpty()) {
                 user.profileImage.loadFromData(imageData);
@@ -1398,16 +1277,13 @@ void UserWindow::loadUsersFromDatabase()
             }
 
             usersList.append(user);
-
-            // Update nextId to be greater than max existing ID
-            if (user.id >= nextId) {
-                nextId = user.id + 1;
-            }
+            if (user.id >= nextId) nextId = user.id + 1;
         }
         updateUsersTable();
+        idEdit->setText(QString::number(nextId));
         qDebug() << "Utilisateurs chargés depuis Oracle:" << usersList.size();
     } else {
-        qDebug() << "Erreur lors du chargement des utilisateurs:" << query.lastError().text();
+        qDebug() << "Erreur chargement utilisateurs:" << query.lastError().text();
         QMessageBox::warning(this, "Erreur Base de données",
                              "Impossible de charger les utilisateurs:\n" + query.lastError().text());
     }
@@ -1420,7 +1296,6 @@ void UserWindow::saveUserToDatabase(const User &user)
     QSqlDatabase db = Connection::getInstance()->getDatabase();
     QSqlQuery query(db);
 
-    // Prepare image data for BLOB
     QByteArray imageData;
     if (!user.profileImage.isNull()) {
         QBuffer buffer(&imageData);
@@ -1428,32 +1303,32 @@ void UserWindow::saveUserToDatabase(const User &user)
         user.profileImage.save(&buffer, "PNG");
     }
 
-    query.prepare("INSERT INTO UTILISATEURS (ID, NOM, EMAIL, TELEPHONE, MOT_DE_PASSE, "
+    query.prepare("INSERT INTO UTILISATEUR (ID_UTILISATEUR, NOM, EMAIL, TELEPHONE, MOT_DE_PASSE, "
                   "ROLE, STATUT, DATE_CREATION, COULEUR_FAVORITE, NOM_ANIMAL, "
                   "MATRICULE_VOITURE, PHOTO_PROFIL, A_VISAGE) "
                   "VALUES (:id, :nom, :email, :telephone, :password, :role, "
-                  ":statut, :date, :couleur, :pet, :car, :photo, :visage)");
+                  ":statut, TO_DATE(:date,'YYYY-MM-DD'), :couleur, :pet, :car, :photo, :visage)");
 
-    query.bindValue(":id", user.id);
-    query.bindValue(":nom", user.name);
-    query.bindValue(":email", user.email);
+    query.bindValue(":id",        user.id);
+    query.bindValue(":nom",       user.name);
+    query.bindValue(":email",     user.email);
     query.bindValue(":telephone", user.phone);
-    query.bindValue(":password", user.password);
-    query.bindValue(":role", user.role);
-    query.bindValue(":statut", user.status);
-    query.bindValue(":date", user.creationDate);
-    query.bindValue(":couleur", user.favoriteColor);
-    query.bindValue(":pet", user.petName);
-    query.bindValue(":car", user.carPlate);
-    query.bindValue(":photo", imageData.isEmpty() ? QVariant() : imageData);
-    query.bindValue(":visage", user.hasFace ? "Y" : "N");
+    query.bindValue(":password",  user.password);
+    query.bindValue(":role",      user.role);
+    query.bindValue(":statut",    user.status.toLower()); // FIX: minuscule pour Oracle
+    query.bindValue(":date",      user.creationDate.toString("yyyy-MM-dd"));
+    query.bindValue(":couleur",   user.favoriteColor);
+    query.bindValue(":pet",       user.petName);
+    query.bindValue(":car",       user.carPlate);
+    query.bindValue(":photo",     imageData.isEmpty() ? QVariant() : imageData);
+    query.bindValue(":visage",    user.hasFace ? "Y" : "N");
 
     if (!query.exec()) {
-        qDebug() << "Erreur lors de l'insertion:" << query.lastError().text();
+        qDebug() << "Erreur insertion:" << query.lastError().text();
         QMessageBox::warning(this, "Erreur Base de données",
                              "Impossible d'ajouter l'utilisateur:\n" + query.lastError().text());
     } else {
-        qDebug() << "Utilisateur ajouté en base de données, ID:" << user.id;
+        qDebug() << "Utilisateur ajouté, ID:" << user.id;
     }
 }
 
@@ -1463,15 +1338,15 @@ void UserWindow::deleteUserFromDatabase(int id)
 
     QSqlDatabase db = Connection::getInstance()->getDatabase();
     QSqlQuery query(db);
-    query.prepare("DELETE FROM UTILISATEURS WHERE ID = :id");
+    query.prepare("DELETE FROM UTILISATEUR WHERE ID_UTILISATEUR = :id");
     query.bindValue(":id", id);
 
     if (!query.exec()) {
-        qDebug() << "Erreur lors de la suppression:" << query.lastError().text();
+        qDebug() << "Erreur suppression:" << query.lastError().text();
         QMessageBox::warning(this, "Erreur Base de données",
                              "Impossible de supprimer l'utilisateur:\n" + query.lastError().text());
     } else {
-        qDebug() << "Utilisateur supprimé de la base de données, ID:" << id;
+        qDebug() << "Utilisateur supprimé, ID:" << id;
     }
 }
 
@@ -1482,7 +1357,6 @@ void UserWindow::updateUserInDatabase(const User &user)
     QSqlDatabase db = Connection::getInstance()->getDatabase();
     QSqlQuery query(db);
 
-    // Prepare image data for BLOB
     QByteArray imageData;
     if (!user.profileImage.isNull()) {
         QBuffer buffer(&imageData);
@@ -1490,33 +1364,33 @@ void UserWindow::updateUserInDatabase(const User &user)
         user.profileImage.save(&buffer, "PNG");
     }
 
-    query.prepare("UPDATE UTILISATEURS SET "
+    query.prepare("UPDATE UTILISATEUR SET "
                   "NOM = :nom, EMAIL = :email, TELEPHONE = :telephone, "
                   "MOT_DE_PASSE = :password, ROLE = :role, STATUT = :statut, "
-                  "DATE_CREATION = :date, COULEUR_FAVORITE = :couleur, "
+                  "DATE_CREATION = TO_DATE(:date,'YYYY-MM-DD'), COULEUR_FAVORITE = :couleur, "
                   "NOM_ANIMAL = :pet, MATRICULE_VOITURE = :car, "
                   "PHOTO_PROFIL = :photo, A_VISAGE = :visage "
-                  "WHERE ID = :id");
+                  "WHERE ID_UTILISATEUR = :id");
 
-    query.bindValue(":id", user.id);
-    query.bindValue(":nom", user.name);
-    query.bindValue(":email", user.email);
+    query.bindValue(":id",        user.id);
+    query.bindValue(":nom",       user.name);
+    query.bindValue(":email",     user.email);
     query.bindValue(":telephone", user.phone);
-    query.bindValue(":password", user.password);
-    query.bindValue(":role", user.role);
-    query.bindValue(":statut", user.status);
-    query.bindValue(":date", user.creationDate);
-    query.bindValue(":couleur", user.favoriteColor);
-    query.bindValue(":pet", user.petName);
-    query.bindValue(":car", user.carPlate);
-    query.bindValue(":photo", imageData.isEmpty() ? QVariant() : imageData);
-    query.bindValue(":visage", user.hasFace ? "Y" : "N");
+    query.bindValue(":password",  user.password);
+    query.bindValue(":role",      user.role);
+    query.bindValue(":statut",    user.status.toLower()); // FIX: minuscule pour Oracle
+    query.bindValue(":date",      user.creationDate.toString("yyyy-MM-dd"));
+    query.bindValue(":couleur",   user.favoriteColor);
+    query.bindValue(":pet",       user.petName);
+    query.bindValue(":car",       user.carPlate);
+    query.bindValue(":photo",     imageData.isEmpty() ? QVariant() : imageData);
+    query.bindValue(":visage",    user.hasFace ? "Y" : "N");
 
     if (!query.exec()) {
-        qDebug() << "Erreur lors de la mise à jour:" << query.lastError().text();
+        qDebug() << "Erreur mise à jour:" << query.lastError().text();
         QMessageBox::warning(this, "Erreur Base de données",
                              "Impossible de modifier l'utilisateur:\n" + query.lastError().text());
     } else {
-        qDebug() << "Utilisateur mis à jour en base de données, ID:" << user.id;
+        qDebug() << "Utilisateur mis à jour, ID:" << user.id;
     }
 }

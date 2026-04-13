@@ -1,0 +1,16 @@
+[NEW COMMANDE]
+Client       : Ahmed Ali
+Utilisateur  : System Admin
+Prix         : 50
+Paiement     : Especes
+Status       : En_attente
+Date         : 2026-04-13 20:42:28
+-----------------------------
+[NEW COMMANDE]
+Client       : Ahmed Ali
+Utilisateur  : System Admin
+Prix         : 80
+Paiement     : Especes
+Status       : En_attente
+Date         : 2026-04-13 20:42:35
+-----------------------------

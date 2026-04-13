@@ -16,6 +16,9 @@
 #include <QPainter>
 #include <QDialog>
 #include <QGraphicsOpacityEffect>
+#include "connection.h"
+#include <QSqlQuery>
+#include <QSqlError>
 
 const QString Matriele::APP_VERSION = "2.0.0";
 const QString Matriele::APP_NAME = "Gestion Matériel";
@@ -53,23 +56,10 @@ Matriele::Matriele(QWidget *parent) : QMainWindow(parent),
     connect(blinkTimer, &QTimer::timeout, this, &Matriele::updateBlinkingState);
     blinkTimer->start(500);
 
-    if (materialsList.isEmpty()) {
-        Material mat1 = {1, "Poutre en chêne", "Bois", 50, 10, QDate::currentDate(), "BoisCorp", "Disponible"};
-        Material mat2 = {2, "Marteau perforateur", "Outil", 15, 5, QDate(2024, 1, 15), "TechTools", "Disponible"};
-        Material mat3 = {3, "Vis à bois 5x60", "Consommable", 500, 100, QDate(2024, 2, 20), "FixPro", "Disponible"};
-        materialsList << mat1 << mat2 << mat3;
-        nextId = 4;
-        dataModified = true;
-        updateMaterialTable();
-    }
-
     updateStatusBar();
 }
 
 Matriele::~Matriele() {
-    if (dataModified) {
-        saveData();
-    }
     qDeleteAll(fieldAnimations);
 }
 
@@ -81,7 +71,6 @@ void Matriele::setupMaterialPage() {
     pageLayout->setContentsMargins(30, 30, 30, 30);
     pageLayout->setSpacing(20);
 
-    // Header
     QFrame *headerFrame = new QFrame;
     headerFrame->setObjectName("headerFrame");
     headerFrame->setStyleSheet("#headerFrame { background-color: white; border-radius: 15px; padding: 20px; }");
@@ -91,7 +80,6 @@ void Matriele::setupMaterialPage() {
     titleLabel->setStyleSheet("font-size: 18px; font-weight: bold; color: #2c3e50;");
     headerLayout->addWidget(titleLabel);
 
-    // Search bar
     QHBoxLayout *searchLayout = new QHBoxLayout;
     searchLayout->setSpacing(15);
 
@@ -118,7 +106,6 @@ void Matriele::setupMaterialPage() {
     searchLayout->addStretch();
     headerLayout->addLayout(searchLayout);
 
-    // Action buttons
     QHBoxLayout *actionButtonsLayout = new QHBoxLayout;
     actionButtonsLayout->setSpacing(12);
 
@@ -135,10 +122,9 @@ void Matriele::setupMaterialPage() {
     statsBtn = createStyledButton("📈 Statistiques", "#1abc9c");
     qrBtn = createStyledButton("📱 Code QR", "#34495e");
     QPushButton *sortBtn = createStyledButton("🔄 Trier", "#f39c12");
-    saveBtn = createStyledButton("💾 Sauvegarder", "#27ae60");
+    saveBtn = createStyledButton("🔄 Actualiser", "#27ae60");
 
     actionButtonsLayout->addWidget(exportBtn);
-
     actionButtonsLayout->addWidget(statsBtn);
     actionButtonsLayout->addWidget(qrBtn);
     actionButtonsLayout->addWidget(sortBtn);
@@ -147,11 +133,9 @@ void Matriele::setupMaterialPage() {
     headerLayout->addLayout(actionButtonsLayout);
     pageLayout->addWidget(headerFrame);
 
-    // Main content
     QHBoxLayout *contentLayout = new QHBoxLayout;
     contentLayout->setSpacing(25);
 
-    // Form
     QFrame *formFrame = new QFrame;
     formFrame->setObjectName("formFrame");
     formFrame->setStyleSheet("#formFrame { background-color: white; border-radius: 15px; padding: 25px; }");
@@ -213,31 +197,20 @@ void Matriele::setupMaterialPage() {
     inputForm->setLabelAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     inputForm->setFormAlignment(Qt::AlignLeft | Qt::AlignTop);
 
-    QLabel *idLabel = new QLabel("🔑 ID:");
-    idLabel->setStyleSheet("font-weight: bold; color: #34495e; padding: 0px; min-height: 15px;");
-    QLabel *nameLabel = new QLabel("🏷️ Nom *:");
-    nameLabel->setStyleSheet("font-weight: bold; color: #34495e; padding: 0px; min-height: 15px;");
-    QLabel *typeLabel = new QLabel("📋 Type:");
-    typeLabel->setStyleSheet("font-weight: bold; color: #34495e; padding: 0px; min-height: 15px;");
-    QLabel *quantityLabel = new QLabel("🔢 Quantité *:");
-    quantityLabel->setStyleSheet("font-weight: bold; color: #34495e; padding: 0px; min-height: 15px;");
-    QLabel *thresholdLabel = new QLabel("⚠️ Seuil *:");
-    thresholdLabel->setStyleSheet("font-weight: bold; color: #34495e; padding: 0px; min-height: 15px;");
-    QLabel *dateLabel = new QLabel("📅 Date d'ajout:");
-    dateLabel->setStyleSheet("font-weight: bold; color: #34495e; padding: 0px; min-height: 15px;");
-    QLabel *supplierLabel = new QLabel("🏢 Fournisseur *:");
-    supplierLabel->setStyleSheet("font-weight: bold; color: #34495e; padding: 0px; min-height: 15px;");
-    QLabel *statusLabel = new QLabel("📊 Statut:");
-    statusLabel->setStyleSheet("font-weight: bold; color: #34495e; padding: 0px; min-height: 15px;");
+    auto makeLabel = [](const QString &text) {
+        QLabel *l = new QLabel(text);
+        l->setStyleSheet("font-weight: bold; color: #34495e; padding: 0px; min-height: 15px;");
+        return l;
+    };
 
-    inputForm->addRow(idLabel, idEdit);
-    inputForm->addRow(nameLabel, nameEdit);
-    inputForm->addRow(typeLabel, typeBox);
-    inputForm->addRow(quantityLabel, quantityEdit);
-    inputForm->addRow(thresholdLabel, thresholdEdit);
-    inputForm->addRow(dateLabel, dateEdit);
-    inputForm->addRow(supplierLabel, supplierEdit);
-    inputForm->addRow(statusLabel, statusBox);
+    inputForm->addRow(makeLabel("🔑 ID:"), idEdit);
+    inputForm->addRow(makeLabel("🏷️ Nom *:"), nameEdit);
+    inputForm->addRow(makeLabel("📋 Type:"), typeBox);
+    inputForm->addRow(makeLabel("🔢 Quantité *:"), quantityEdit);
+    inputForm->addRow(makeLabel("⚠️ Seuil *:"), thresholdEdit);
+    inputForm->addRow(makeLabel("📅 Date d'ajout:"), dateEdit);
+    inputForm->addRow(makeLabel("🏢 Fournisseur *:"), supplierEdit);
+    inputForm->addRow(makeLabel("📊 Statut:"), statusBox);
 
     formLayout->addLayout(inputForm);
     formLayout->addStretch();
@@ -248,7 +221,6 @@ void Matriele::setupMaterialPage() {
 
     contentLayout->addWidget(formFrame);
 
-    // Table
     QFrame *tableFrame = new QFrame;
     tableFrame->setObjectName("tableFrame");
     tableFrame->setStyleSheet("#tableFrame { background-color: white; border-radius: 15px; padding: 5px; }");
@@ -277,7 +249,6 @@ void Matriele::setupMaterialPage() {
 
     pageLayout->addLayout(contentLayout);
 
-    // Connections
     connect(addBtn, &QPushButton::clicked, [this]() { if (validateMaterialFields()) addMaterial(); });
     connect(deleteBtn, &QPushButton::clicked, this, &Matriele::deleteMaterial);
     connect(modifyBtn, &QPushButton::clicked, [this]() { if (validateMaterialFields()) modifyMaterial(); });
@@ -443,74 +414,98 @@ void Matriele::showNotification(const QString& message, bool isError) {
 
 void Matriele::addMaterial() {
     Material newMaterial;
-    newMaterial.id = nextId++;
-    newMaterial.name = nameEdit->text().trimmed();
-    newMaterial.type = typeBox->currentText();
-    newMaterial.quantity = quantityEdit->text().toInt();
+    newMaterial.name      = nameEdit->text().trimmed();
+    newMaterial.type      = typeBox->currentText();
+    newMaterial.quantity  = quantityEdit->text().toInt();
     newMaterial.threshold = thresholdEdit->text().toInt();
     newMaterial.addedDate = dateEdit->date();
-    newMaterial.supplier = supplierEdit->text().trimmed();
-    newMaterial.status = statusBox->currentText();
+    newMaterial.supplier  = supplierEdit->text().trimmed();
+    newMaterial.status    = (newMaterial.quantity <= newMaterial.threshold) ? "Rupture" : statusBox->currentText();
 
-    if (newMaterial.quantity <= newMaterial.threshold && newMaterial.status != "Rupture") {
-        newMaterial.status = "Rupture";
+    QSqlQuery qMax(Connection::getInstance()->getDatabase());
+    qMax.exec("SELECT NVL(MAX(ID_MATERIEL),0) FROM MATERIEL");
+    if (qMax.next()) newMaterial.id = qMax.value(0).toInt() + 1;
+    else newMaterial.id = nextId;
+
+    QSqlQuery query(Connection::getInstance()->getDatabase());
+    query.prepare("INSERT INTO MATERIEL (ID_MATERIEL, NOM, TYPE, QUANTITE, SEUIL, DATE_AJOUT, FOURNISSEUR, STATUT) "
+                  "VALUES (:id, :nom, :type, :quantite, :seuil, TO_DATE(:date,'YYYY-MM-DD'), :fournisseur, :statut)");
+    query.bindValue(":id",          newMaterial.id);
+    query.bindValue(":nom",         newMaterial.name);
+    query.bindValue(":type",        newMaterial.type);
+    query.bindValue(":quantite",    newMaterial.quantity);
+    query.bindValue(":seuil",       newMaterial.threshold);
+    query.bindValue(":date",        newMaterial.addedDate.toString("yyyy-MM-dd"));
+    query.bindValue(":fournisseur", newMaterial.supplier);
+    query.bindValue(":statut",      newMaterial.status);
+
+    if (!query.exec()) {
+        showNotification("Erreur ajout Oracle:\n" + query.lastError().text(), true);
+        return;
     }
 
-    materialsList.append(newMaterial);
-    updateMaterialTable();
+    loadData();
     clearMaterialFields();
-    dataModified = true;
-    updateStatusBar();
-    showNotification("✓ Matériel ajouté avec succès !", false);
+    showNotification("✓ Matériel ajouté avec succès dans Oracle !", false);
 }
 
 void Matriele::modifyMaterial() {
     int currentId = idEdit->text().toInt();
-    for (Material &material : materialsList) {
-        if (material.id == currentId) {
-            material.name = nameEdit->text().trimmed();
-            material.type = typeBox->currentText();
-            material.quantity = quantityEdit->text().toInt();
-            material.threshold = thresholdEdit->text().toInt();
-            material.addedDate = dateEdit->date();
-            material.supplier = supplierEdit->text().trimmed();
-            material.status = statusBox->currentText();
-            if (material.quantity <= material.threshold && material.status != "Rupture") {
-                material.status = "Rupture";
-            }
-            break;
-        }
+    if (currentId <= 0) {
+        showNotification("Sélectionnez un matériel à modifier.", true);
+        return;
     }
-    updateMaterialTable();
-    dataModified = true;
-    updateStatusBar();
+
+    QString newStatus = statusBox->currentText();
+    int qty   = quantityEdit->text().toInt();
+    int seuil = thresholdEdit->text().toInt();
+    if (qty <= seuil) newStatus = "Rupture";
+
+    QSqlQuery query(Connection::getInstance()->getDatabase());
+    query.prepare("UPDATE MATERIEL SET NOM=:nom, TYPE=:type, QUANTITE=:quantite, "
+                  "SEUIL=:seuil, DATE_AJOUT=TO_DATE(:date,'YYYY-MM-DD'), FOURNISSEUR=:fournisseur, STATUT=:statut "
+                  "WHERE ID_MATERIEL=:id");
+    query.bindValue(":nom",         nameEdit->text().trimmed());
+    query.bindValue(":type",        typeBox->currentText());
+    query.bindValue(":quantite",    qty);
+    query.bindValue(":seuil",       seuil);
+    query.bindValue(":date",        dateEdit->date().toString("yyyy-MM-dd"));
+    query.bindValue(":fournisseur", supplierEdit->text().trimmed());
+    query.bindValue(":statut",      newStatus);
+    query.bindValue(":id",          currentId);
+
+    if (!query.exec()) {
+        showNotification("Erreur modification Oracle:\n" + query.lastError().text(), true);
+        return;
+    }
+
+    loadData();
     showNotification("✓ Matériel modifié avec succès !", false);
 }
 
 void Matriele::deleteMaterial() {
     int row = materialTable->currentRow();
-    if (row < 0) {
-        showNotification("Sélectionnez un matériel à supprimer.", true);
-        return;
-    }
+    if (row < 0) { showNotification("Sélectionnez un matériel à supprimer.", true); return; }
 
     QMessageBox::StandardButton reply = QMessageBox::question(
-        this, "Confirmation", "Voulez-vous vraiment supprimer ce matériel ?",
+        this, "Confirmation", "Voulez-vous supprimer ce matériel ?",
         QMessageBox::Yes | QMessageBox::No);
 
     if (reply == QMessageBox::Yes) {
         int id = materialTable->item(row, 0)->text().toInt();
-        for (int i = 0; i < materialsList.size(); ++i) {
-            if (materialsList[i].id == id) {
-                materialsList.removeAt(i);
-                updateMaterialTable();
-                clearMaterialFields();
-                dataModified = true;
-                updateStatusBar();
-                showNotification("✓ Matériel supprimé avec succès !", false);
-                return;
-            }
+
+        QSqlQuery query(Connection::getInstance()->getDatabase());
+        query.prepare("DELETE FROM MATERIEL WHERE ID_MATERIEL = :id");
+        query.bindValue(":id", id);
+
+        if (!query.exec()) {
+            showNotification("Erreur suppression Oracle:\n" + query.lastError().text(), true);
+            return;
         }
+
+        loadData();
+        clearMaterialFields();
+        showNotification("✓ Matériel supprimé !", false);
     }
 }
 
@@ -597,8 +592,8 @@ void Matriele::clearMaterialFields() {
 }
 
 void Matriele::updateStatusBar() {
-    int total = materialsList.size();
-    int lowStock = 0;
+    int total      = materialsList.size();
+    int lowStock   = 0;
     int outOfStock = 0;
 
     for (const Material &m : materialsList) {
@@ -617,22 +612,18 @@ void Matriele::updateBlinkingState() {
     for (int i = 0; i < materialTable->rowCount(); ++i) {
         if (!materialTable->item(i, 3) || !materialTable->item(i, 4)) continue;
 
-        int qty = materialTable->item(i, 3)->text().toInt();
+        int qty    = materialTable->item(i, 3)->text().toInt();
         int thresh = materialTable->item(i, 4)->text().toInt();
 
         if (qty <= thresh) {
             QColor bgColor = blinkState ? QColor(255, 220, 220) : QColor(255, 235, 235);
-            for (int col = 0; col < materialTable->columnCount(); ++col) {
-                if (materialTable->item(i, col)) {
+            for (int col = 0; col < materialTable->columnCount(); ++col)
+                if (materialTable->item(i, col))
                     materialTable->item(i, col)->setBackground(bgColor);
-                }
-            }
         } else {
-            for (int col = 0; col < materialTable->columnCount(); ++col) {
-                if (materialTable->item(i, col)) {
+            for (int col = 0; col < materialTable->columnCount(); ++col)
+                if (materialTable->item(i, col))
                     materialTable->item(i, col)->setBackground((i % 2 == 0) ? Qt::white : QColor(250, 250, 252));
-                }
-            }
         }
     }
 }
@@ -652,10 +643,7 @@ void Matriele::showStatistics() {
     }
 
     int totalMaterials = materialsList.size();
-    int lowStock = 0;
-    int available = 0;
-    int outOfStock = 0;
-    int totalQuantity = 0;
+    int lowStock = 0, available = 0, outOfStock = 0, totalQuantity = 0;
     QMap<QString, int> typeCount;
 
     for (const Material &m : materialsList) {
@@ -674,11 +662,9 @@ void Matriele::showStatistics() {
     stats += "• Stock disponible : " + QString::number(available) + "\n";
     stats += "• Stock critique : " + QString::number(lowStock) + "\n";
     stats += "• En rupture : " + QString::number(outOfStock) + "\n\n";
-
     stats += "🏷️ Par type :\n";
-    for (auto it = typeCount.begin(); it != typeCount.end(); ++it) {
+    for (auto it = typeCount.begin(); it != typeCount.end(); ++it)
         stats += "• " + it.key() + " : " + QString::number(it.value()) + "\n";
-    }
 
     QMessageBox::information(this, "Statistiques", stats);
 }
@@ -690,9 +676,9 @@ void Matriele::generateQRCode() {
         return;
     }
 
-    int id = materialTable->item(row, 0)->text().toInt();
-    QString name = materialTable->item(row, 1)->text();
-    QString type = materialTable->item(row, 2)->text();
+    int id          = materialTable->item(row, 0)->text().toInt();
+    QString name     = materialTable->item(row, 1)->text();
+    QString type     = materialTable->item(row, 2)->text();
     QString quantity = materialTable->item(row, 3)->text();
     QString supplier = materialTable->item(row, 6)->text();
 
@@ -702,9 +688,8 @@ void Matriele::generateQRCode() {
     using namespace qrcodegen;
     QrCode qr = QrCode::encodeText(qrData.toUtf8().constData(), QrCode::Ecc::MEDIUM);
 
-    int scale = 5;
-    int margin = 2;
-    int size = qr.getSize();
+    int scale = 5, margin = 2;
+    int size    = qr.getSize();
     int imgSize = (size + 2 * margin) * scale;
 
     QImage img(imgSize, imgSize, QImage::Format_RGB32);
@@ -714,13 +699,10 @@ void Matriele::generateQRCode() {
     painter.setBrush(Qt::black);
     painter.setPen(Qt::NoPen);
 
-    for (int y = 0; y < size; y++) {
-        for (int x = 0; x < size; x++) {
-            if (qr.getModule(x, y)) {
+    for (int y = 0; y < size; y++)
+        for (int x = 0; x < size; x++)
+            if (qr.getModule(x, y))
                 painter.drawRect((x + margin) * scale, (y + margin) * scale, scale, scale);
-            }
-        }
-    }
 
     QDialog dialog(this);
     dialog.setWindowTitle("Code QR : " + name);
@@ -750,73 +732,39 @@ void Matriele::importFromFile() {
 }
 
 void Matriele::saveData() {
-    QString filename = QDir::homePath() + "/" + APP_NAME + "_data.json";
-    QFile file(filename);
-    if (file.open(QIODevice::WriteOnly)) {
-        QJsonObject root;
-        QJsonArray materialsArray;
-
-        for (const Material& m : materialsList) {
-            QJsonObject obj;
-            obj["id"] = m.id;
-            obj["name"] = m.name;
-            obj["type"] = m.type;
-            obj["quantity"] = m.quantity;
-            obj["threshold"] = m.threshold;
-            obj["addedDate"] = m.addedDate.toString(Qt::ISODate);
-            obj["supplier"] = m.supplier;
-            obj["status"] = m.status;
-            materialsArray.append(obj);
-        }
-
-        root["materials"] = materialsArray;
-        root["nextId"] = nextId;
-
-        QJsonDocument doc(root);
-        file.write(doc.toJson());
-        file.close();
-
-        dataModified = false;
-        showNotification("✓ Données sauvegardées", false);
-    }
+    loadData();
+    showNotification("✓ Données actualisées depuis Oracle", false);
 }
 
 void Matriele::loadData() {
-    QString filename = QDir::homePath() + "/" + APP_NAME + "_data.json";
-    QFile file(filename);
-    if (!file.exists()) return;
-
-    if (file.open(QIODevice::ReadOnly)) {
-        QByteArray data = file.readAll();
-        QJsonDocument doc = QJsonDocument::fromJson(data);
-
-        if (!doc.isNull()) {
-            QJsonObject root = doc.object();
-            QJsonArray materialsArray = root["materials"].toArray();
-
-            materialsList.clear();
-
-            for (const QJsonValue& value : materialsArray) {
-                QJsonObject obj = value.toObject();
-                Material m;
-                m.id = obj["id"].toInt();
-                m.name = obj["name"].toString();
-                m.type = obj["type"].toString();
-                m.quantity = obj["quantity"].toInt();
-                m.threshold = obj["threshold"].toInt();
-                m.addedDate = QDate::fromString(obj["addedDate"].toString(), Qt::ISODate);
-                m.supplier = obj["supplier"].toString();
-                m.status = obj["status"].toString();
-                materialsList.append(m);
-            }
-
-            nextId = root["nextId"].toInt();
-            if (nextId <= 0) {
-                nextId = materialsList.isEmpty() ? 1 : materialsList.last().id + 1;
-            }
-
-            file.close();
-            updateMaterialTable();
-        }
+    QSqlDatabase db = Connection::getInstance()->getDatabase();
+    if (!db.isOpen()) {
+        showNotification("❌ Base de données non connectée !", true);
+        return;
     }
+
+    QSqlQuery query(db);
+    if (!query.exec("SELECT ID_MATERIEL, NOM, TYPE, QUANTITE, SEUIL, DATE_AJOUT, FOURNISSEUR, STATUT "
+                    "FROM MATERIEL ORDER BY ID_MATERIEL")) {
+        showNotification("Erreur chargement Oracle:\n" + query.lastError().text(), true);
+        return;
+    }
+
+    materialsList.clear();
+    while (query.next()) {
+        Material m;
+        m.id        = query.value(0).toInt();
+        m.name      = query.value(1).toString();
+        m.type      = query.value(2).toString();
+        m.quantity  = query.value(3).toInt();
+        m.threshold = query.value(4).toInt();
+        m.addedDate = query.value(5).toDate();
+        m.supplier  = query.value(6).toString();
+        m.status    = query.value(7).toString();
+        materialsList.append(m);
+    }
+
+    nextId = materialsList.isEmpty() ? 1 : materialsList.last().id + 1;
+    idEdit->setText(QString::number(nextId));
+    updateMaterialTable();
 }

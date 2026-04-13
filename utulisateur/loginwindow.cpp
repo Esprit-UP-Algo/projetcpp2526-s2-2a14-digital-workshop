@@ -369,7 +369,7 @@ bool LoginWindow::validateLogin(const QString &email, const QString &password)
         QSqlDatabase db = Connection::getInstance()->getDatabase();
         QSqlQuery query(db);
 
-        query.prepare("SELECT * FROM UTILISATEURS WHERE EMAIL = :email AND STATUT = 'Actif'");
+        query.prepare("SELECT * FROM UTILISATEUR WHERE EMAIL = :email AND STATUT = 'Actif'");
         query.bindValue(":email", email);
 
         if (query.exec() && query.next()) {
@@ -536,8 +536,22 @@ void LoginWindow::showSecurityQuestionsDialog(const QString &email)
                                      "Vous allez être redirigé vers l'application.");
 
             // Emit login success and close windows
-            emit loginSuccess();
-            close();
+            // Récupérer l'ID depuis Oracle
+            int userId = -1;
+            if (Connection::getInstance()->isOpen()) {
+                QSqlDatabase db = Connection::getInstance()->getDatabase();
+                QSqlQuery q(db);
+                q.prepare("SELECT ID_UTILISATEUR FROM UTILISATEUR WHERE EMAIL = :email");
+                q.bindValue(":email", email);
+                if (q.exec() && q.next())
+                    userId = q.value(0).toInt();
+            }
+            if (userId == -1) {
+                if (email == "admin@entreprise.com") userId = 1;
+                else if (email == "rh@entreprise.com") userId = 2;
+                else if (email == "user@demo.com") userId = 3;
+            }
+            emit loginSuccess(userId);            close();
         } else {
             QString errorMessage = "❌ Vos réponses sont incorrectes.\n\n";
             if (color.compare(favoriteColor, Qt::CaseInsensitive) != 0) {
@@ -561,7 +575,7 @@ void LoginWindow::showSecurityQuestionsDialog(const QString &email)
 
 void LoginWindow::handleLogin()
 {
-    QString email = emailEdit->text().trimmed();
+    QString email    = emailEdit->text().trimmed();
     QString password = passwordEdit->text();
 
     if (email.isEmpty() || password.isEmpty()) {
@@ -570,9 +584,31 @@ void LoginWindow::handleLogin()
         return;
     }
 
-    if (validateLogin(email, password)) {
+    int userId = -1;
+
+    // Vérifier dans Oracle
+    if (Connection::getInstance()->isOpen()) {
+        QSqlDatabase db = Connection::getInstance()->getDatabase();
+        QSqlQuery query(db);
+        query.prepare("SELECT ID_UTILISATEUR FROM UTILISATEUR "
+                      "WHERE EMAIL = :email AND MOT_DE_PASSE = :pwd");
+        query.bindValue(":email", email);
+        query.bindValue(":pwd",   password);
+        if (query.exec() && query.next()) {
+            userId = query.value(0).toInt();
+        }
+    }
+
+    // Fallback demo
+    if (userId == -1) {
+        if (email == "admin@entreprise.com" && password == "admin123") userId = 1;
+        else if (email == "rh@entreprise.com" && password == "rh123")  userId = 2;
+        else if (email == "user@demo.com"    && password == "demo123") userId = 3;
+    }
+
+    if (userId != -1) {
         errorLabel->setVisible(false);
-        emit loginSuccess();
+        emit loginSuccess(userId);  // ← transmet l'ID
         close();
     } else {
         errorLabel->setText("❌ Email ou mot de passe incorrect");
