@@ -14,14 +14,14 @@
 #include <QTimer>
 #include <QMap>
 #include <QPropertyAnimation>
-#include <QRegularExpression>
 #include <QList>
 #include <QSet>
 #include <QColor>
 #include <QBrush>
 #include <QDebug>
-
-// ========== INCLUDES POUR PDF ==========
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QSqlError>
 #include <QPrinter>
 #include <QTextDocument>
 #include <QFileDialog>
@@ -29,9 +29,30 @@
 #include <QPageLayout>
 #include <QPageSize>
 #include <QTextStream>
-// =======================================
+#include <QHBoxLayout>
+#include <QTabWidget>
+#include <QDialog>
+#include <QVBoxLayout>
+#include <QFrame>
+#include <QChartView>
+#include <QPieSeries>
+#include <QPieSlice>
+#include <QBarSeries>
+#include <QBarSet>
+#include <QLegend>
+#include <QBarCategoryAxis>
+#include <QLineSeries>
+#include <QDateTimeAxis>
+#include <QValueAxis>
+#include <QChart>
 
-struct Material {
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+namespace QtCharts {}
+using namespace QtCharts;
+#endif
+
+
+    struct Material {
     int id;
     QString name;
     QString type;
@@ -61,14 +82,13 @@ private slots:
     void exportToCsv();
     void showStatistics();
     void generateQRCode();
-    void updateBlinkingState();      // Pour le clignotement rouge
-    void checkLowStock();            // Vérifie les stocks critiques
-    void testBlinking();             // Pour tester le clignotement
+    void updateBlinkingState();
+    void checkLowStock();
+    void testBlinking();
     void importFromFile();
     void saveData();
     void loadData();
     void animateField();
-    void animateButton();
 
 private:
     void setupMaterialPage();
@@ -76,14 +96,17 @@ private:
     void setupShortcuts();
     void updateMaterialTable();
     void updateStatusBar();
+    void loadMaterialsFromDB();
     QPushButton* createStyledButton(const QString& text, const QString& color);
     bool validateMaterialFields();
     bool isValidName(const QString& name);
     void showNotification(const QString& message, bool isError = false);
-
-    // ========== METHODES POUR PDF ==========
+    void showAdvancedStatistics();
+    QChart* createTypePieChart();
+    QChart* createStatusPieChart();
+    QChart* createQuantityBarChart();
+    QChart* createStockLineChart();
     QString generateHtmlReport();
-    // =======================================
 
     // Material members
     QList<Material> materialsList;
@@ -95,13 +118,13 @@ private:
     QComboBox *sortComboBox;
     QPushButton *modifyBtn, *exportBtn, *statsBtn, *qrBtn, *importBtn, *saveBtn;
 
-    // Timers pour animations
-    QTimer *blinkTimer;           // Timer pour clignotement (300ms)
-    QTimer *autoSaveTimer;        // Timer pour sauvegarde auto
-    QTimer *lowStockCheckTimer;   // Timer pour vérifier stock critique (3 secondes)
+    // Timers
+    QTimer *blinkTimer;
+    QTimer *autoSaveTimer;
+    QTimer *lowStockCheckTimer;
 
-    bool blinkState;              // État du clignotement (true/false)
-    QSet<int> lowStockIds;        // Liste des IDs en stock critique
+    bool blinkState;
+    QSet<int> lowStockIds;
 
     int nextId;
     bool dataModified;

@@ -1,5 +1,5 @@
 # BerusGestion.pro
-QT += core sql widgets printsupport
+QT += core sql widgets printsupport charts
 
 CONFIG += c++17
 

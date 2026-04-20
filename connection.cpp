@@ -1,25 +1,29 @@
 #include "connection.h"
+#include <QDebug>
 
-Connection::Connection()
-{
-}
+Connection::Connection() {}
 
-bool Connection::createconnect()
-{
-    bool test = false;
-    db = QSqlDatabase::addDatabase("QODBC"); // QOCDB is the standard ODBC driver for Qt
-    db.setDatabaseName("ORCL"); // User provided DSN ORCL
-    db.setUserName("ahmed"); // User provided id ahmed
-    db.setPassword("123456789"); // User provided mdp 123456789
+bool Connection::createconnect() {
+    db = QSqlDatabase::addDatabase("QODBC");
+
+    // Tout dans la chaîne de connexion
+    db.setDatabaseName(
+        "DRIVER={Oracle in XE};"
+        "DBQ=localhost:1521/xe;"
+        "UID=ahmed;"
+        "PWD=ahmed123;"
+        );
+    // Ne pas utiliser setUserName ni setPassword
 
     if (db.open()) {
-        test = true;
+        qDebug() << "Connexion réussie !";
+        return true;
     }
-    return test;
+    qDebug() << "Erreur:" << db.lastError().text();
+    return false;
 }
 
-void Connection::closeConnection()
-{
+void Connection::closeConnection() {
     if(db.isOpen()) {
         db.close();
     }
