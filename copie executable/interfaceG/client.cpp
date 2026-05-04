@@ -4,6 +4,7 @@
 #include <QSqlError>
 #include <QDebug>
 #include <QRegularExpression>
+#include <QMessageBox>
 
 // =============================================
 // VALIDATIONS
@@ -147,43 +148,53 @@ QString Client::validerTout(const QString &id,
     return "";
 }
 
+bool Client::existe(int idToCheck)
+{
+    QSqlQuery query;
+    query.prepare("SELECT ID FROM CLIENTS WHERE ID = ?");
+    query.addBindValue(idToCheck);
+    if (query.exec() && query.next()) {
+        return true;
+    }
+    return false;
+}
+
 // =============================================
 // CRUD
 // =============================================
 
 bool Client::ajouter()
 {
-    QSqlQuery query;
-    query.prepare(
-        "INSERT INTO CLIENTS (ID, NOM, PRENOM, EMAIL, TEL, ADRESSE, "
-        "DATE_INSCRIPTION, STATUT) "
-        "VALUES (:id, :nom, :prenom, :email, :tel, :adresse, "
-        "TO_DATE(:dateInscription, 'DD/MM/YYYY'), :statut)"
-        );
-    query.bindValue(":id",              id);
-    query.bindValue(":nom",             nom);
-    query.bindValue(":prenom",          prenom);
-    query.bindValue(":email",           email);
-    query.bindValue(":tel",             telephone);
-    query.bindValue(":adresse",         adresse);
-    query.bindValue(":dateInscription", dateInscription);
-
-
-    if (!query.exec()) {
-        lastError = query.lastError().text();
-        qDebug() << "Erreur ajouter:" << lastError;
+    if (existe(id)) {
+        QMessageBox::critical(nullptr, "Erreur de doublon", "L'ID " + QString::number(id) + " existe deja dans la base de donnees Oracle !");
         return false;
     }
-    QSqlDatabase::database().commit();
+
+    // On utilise un formatage de chaine exact pour eviter tout bug de QODBC (parametre non lie).
+    QString queryStr = QString("INSERT INTO CLIENTS (ID, NOM, PRENOM, EMAIL, TEL, ADRESSE, DATE_INSCRIPTION) "
+                               "VALUES (%1, '%2', '%3', '%4', '%5', '%6', TO_DATE('%7', 'DD/MM/YYYY'))")
+                          .arg(id)
+                          .arg(QString(nom).replace("'", "''"))
+                          .arg(QString(prenom).replace("'", "''"))
+                          .arg(QString(email).replace("'", "''"))
+                          .arg(QString(telephone).replace("'", "''"))
+                          .arg(QString(adresse).replace("'", "''"))
+                          .arg(dateInscription);
+
+    QSqlQuery query;
+    if (!query.exec(queryStr)) {
+        // IMPORTANT : Affiche l'erreur Oracle exacte !
+        QMessageBox::critical(nullptr, "Erreur Oracle Cachee", "L'insertion a echoue car Oracle a refuse la requete. Voici l'erreur exacte :\n\n" + query.lastError().text());
+        return false;
+    }
     return true;
 }
 
-QString Client::getLastError() const { return lastError; }
 bool Client::supprimer(int id)
 {
     QSqlQuery query;
-    query.prepare("DELETE FROM CLIENTS WHERE ID = :id");
-    query.bindValue(":id", id);
+    query.prepare("DELETE FROM CLIENTS WHERE ID = ?");
+    query.addBindValue(id);
     if (!query.exec()) {
         qDebug() << "Erreur supprimer:" << query.lastError().text();
         return false;
@@ -197,17 +208,18 @@ bool Client::modifier(int id, QString nom, QString prenom,
 {
     QSqlQuery query;
     query.prepare("UPDATE CLIENTS SET "
-                  "NOM = :nom, PRENOM = :prenom, EMAIL = :email, "
-                  "TEL = :telephone, ADRESSE = :adresse, "
-                  "DATE_INSCRIPTION = TO_DATE(:date, 'DD/MM/YYYY') "
-                  "WHERE ID = :id");
-    query.bindValue(":id",        id);
-    query.bindValue(":nom",       nom);
-    query.bindValue(":prenom",    prenom);
-    query.bindValue(":email",     email);
-    query.bindValue(":telephone", telephone);
-    query.bindValue(":adresse",   adresse);
-    query.bindValue(":date",      dateInscription);
+                  "NOM = ?, PRENOM = ?, EMAIL = ?, "
+                  "TEL = ?, ADRESSE = ?, "
+                  "DATE_INSCRIPTION = TO_DATE(?, 'DD/MM/YYYY') "
+                  "WHERE ID = ?");
+    query.addBindValue(nom);
+    query.addBindValue(prenom);
+    query.addBindValue(email);
+    query.addBindValue(telephone);
+    query.addBindValue(adresse);
+    query.addBindValue(dateInscription);
+    query.addBindValue(id);
+
     if (!query.exec()) {
         qDebug() << "Erreur modifier:" << query.lastError().text();
         return false;
@@ -215,12 +227,11 @@ bool Client::modifier(int id, QString nom, QString prenom,
     return true;
 }
 
-QSqlQueryModel* Client::afficher()
+QSqlQueryModel* Client::afficher(QString critere)
 {
     QSqlQueryModel *model = new QSqlQueryModel();
-    model->setQuery("SELECT ID, NOM, PRENOM, EMAIL, TEL, "
-                    "ADRESSE, DATE_INSCRIPTION "
-                    "FROM CLIENTS ORDER BY ID");
+    QString queryStr = "SELECT ID, NOM, PRENOM, EMAIL, TEL, ADRESSE, DATE_INSCRIPTION FROM CLIENTS ORDER BY " + critere;
+    model->setQuery(queryStr);
     if (model->lastError().isValid()) {
         qDebug() << "Erreur afficher:" << model->lastError().text();
     }

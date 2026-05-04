@@ -15,7 +15,6 @@ private:
     QString telephone;
     QString adresse;
     QString dateInscription;
-    QString lastError;
 
 public:
     Client() : id(0) {}
@@ -26,15 +25,15 @@ public:
         : id(id), nom(nom), prenom(prenom), email(email),
         telephone(telephone), adresse(adresse),
         dateInscription(dateInscription) {}
-    QString getLastError() const;
 
     // ===== CRUD =====
     bool ajouter();
+    bool existe(int id);
     bool supprimer(int id);
     bool modifier(int id, QString nom, QString prenom,
                   QString email, QString telephone,
                   QString adresse, QString dateInscription);
-    QSqlQueryModel* afficher();
+    QSqlQueryModel* afficher(QString critere = "ID");
 
     // ===== VALIDATIONS =====
     static bool validerID       (const QString &id,      QString &erreur);
