@@ -1,113 +1,38 @@
 cmake_minimum_required(VERSION 3.16)
-
-project(interfaceG VERSION 1.0 LANGUAGES CXX)
+project(GestionCollaborative)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
-set(CMAKE_AUTOUIC ON)
+find_package(Qt6 REQUIRED COMPONENTS Widgets Sql Network PrintSupport Charts)
 
-# Trouver Qt6 ou Qt5
-find_package(Qt6 COMPONENTS Core Gui Widgets PrintSupport QUIET)
-if (NOT Qt6_FOUND)
-    find_package(Qt5 COMPONENTS Core Gui Widgets PrintSupport REQUIRED)
-endif()
-
-# Fichiers sources
-set(PROJECT_SOURCES
+add_executable(GestionCollaborative
     main.cpp
-    mainwindow.cpp
-    mainwindow.h
+    utulisateur/loginwindow.h
+    utulisateur/loginwindow.cpp
+    utulisateur/userwindow.cpp
+    utulisateur/userwindow.h
+    connection/connection.h
+    connection/connection.cpp
+    matriel/matriele.cpp
+    matriel/matriele.h
+    matriel/qrcodegen.cpp
+    matriel/qrcodegen.hpp
+    matriel/matriele.ui
+    commande/commande.h
+    commande/commande.cpp
+    commande/commandewindow.h
+    commande/commandewindow.cpp
+    commande/commandewindow.ui
+    commande/twiliomanager.h
+    commande/twiliomanager.cpp
 )
 
-# Créer l'exécutable
-add_executable(interfaceG ${PROJECT_SOURCES})
+target_link_libraries(GestionCollaborative PRIVATE Qt6::Widgets Qt6::Sql Qt6::Network Qt6::PrintSupport Qt6::Charts)
+set_target_properties(GestionCollaborative PROPERTIES AUTOMOC ON AUTOUIC ON)
 
-# Lier les bibliothèques Qt
-if (Qt6_FOUND)
-    target_link_libraries(interfaceG PRIVATE
-        Qt6::Core
-        Qt6::Gui
-        Qt6::Widgets
-        Qt6::PrintSupport
-    )
-else()
-    target_link_libraries(interfaceG PRIVATE
-        Qt5::Core
-        Qt5::Gui
-        Qt5::Widgets
-        Qt5::PrintSupport
-    )
-endif()
-cmake_minimum_required(VERSION 3.16)
-
-project(interfaceG VERSION 0.1 LANGUAGES CXX)
-
-set(CMAKE_AUTOUIC ON)
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
-
-set(PROJECT_SOURCES
-        main.cpp
-        mainwindow.cpp
-        mainwindow.h
-        mainwindow.ui
+target_include_directories(GestionCollaborative PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/utulisateur
+    ${CMAKE_CURRENT_SOURCE_DIR}/connection
+    ${CMAKE_CURRENT_SOURCE_DIR}/matriel
+    ${CMAKE_CURRENT_SOURCE_DIR}/commande
 )
-
-if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    qt_add_executable(interfaceG
-        MANUAL_FINALIZATION
-        ${PROJECT_SOURCES}
-    )
-# Define target properties for Android with Qt 6 as:
-#    set_property(TARGET interfaceG APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
-#                 ${CMAKE_CURRENT_SOURCE_DIR}/android)
-# For more information, see https://doc.qt.io/qt-6/qt-add-executable.html#target-creation
-else()
-    if(ANDROID)
-        add_library(interfaceG SHARED
-            ${PROJECT_SOURCES}
-        )
-# Define properties for Android with Qt 5 after find_package() calls as:
-#    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
-    else()
-        add_executable(interfaceG
-            ${PROJECT_SOURCES}
-        )
-    endif()
-endif()
-
-target_link_libraries(interfaceG PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
-
-# Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
-# If you are developing for iOS or macOS you should consider setting an
-# explicit, fixed bundle identifier manually though.
-if(${QT_VERSION} VERSION_LESS 6.1.0)
-  set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.interfaceG)
-endif()
-set_target_properties(interfaceG PROPERTIES
-    ${BUNDLE_ID_OPTION}
-    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
-    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
-    MACOSX_BUNDLE TRUE
-    WIN32_EXECUTABLE TRUE
-)
-
-include(GNUInstallDirs)
-install(TARGETS interfaceG
-    BUNDLE DESTINATION .
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
-
-if(QT_VERSION_MAJOR EQUAL 6)
-    qt_finalize_executable(interfaceG)
-endif()

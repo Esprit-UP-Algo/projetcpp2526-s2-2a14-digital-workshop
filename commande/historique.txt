@@ -1,0 +1,216 @@
+[NEW COMMANDE]
+Client       : Ahmed Ali
+Utilisateur  : System Admin
+Prix         : 50
+Paiement     : Especes
+Status       : En_attente
+Date         : 2026-04-13 20:42:28
+-----------------------------
+[NEW COMMANDE]
+Client       : Ahmed Ali
+Utilisateur  : System Admin
+Prix         : 80
+Paiement     : Especes
+Status       : En_attente
+Date         : 2026-04-13 20:42:35
+-----------------------------
+[NEW COMMANDE]
+Client       : Ahmed Ali
+Utilisateur  : System Admin
+Prix         : 100
+Paiement     : Especes
+Status       : En_attente
+Date         : 2026-04-14 14:10:32
+-----------------------------
+[NEW COMMANDE]
+Client       : Ahmed Ali
+Utilisateur  : System Admin
+Prix         : 0
+Paiement     : Especes
+Status       : Livree
+Date         : 2026-04-14 14:11:26
+-----------------------------
+[NEW COMMANDE]
+Client       : Ahmed Ali
+Utilisateur  : System Admin
+Prix         : 0
+Paiement     : Especes
+Status       : Livree
+Date         : 2026-04-14 14:24:33
+-----------------------------
+[UPDATE COMMANDE]
+Id Commande       : 11
+Client       : Ahmed Ali
+Utilisateur  : System Admin
+Prix         : 50
+Paiement     : Especes
+Status       : Livree
+Date         : 2026-04-20 19:27:58
+-----------------------------
+[DELETED COMMANDE]
+Id Commande       : 11
+Date         : 2026-04-20 19:28:26
+-----------------------------
+[NEW COMMANDE]
+Client       : Ahmed Ali
+Prix         : 50
+Paiement     : Cheque_bancaire
+Status       : En_attente
+Date         : 2026-04-20 19:38:56
+-----------------------------
+[UPDATE COMMANDE]
+Id Commande       : 41
+Client       : Ahmed Ali
+Prix         : 50
+Paiement     : Cheque_bancaire
+Status       : En_attente
+Date         : 2026-04-20 19:39:04
+-----------------------------
+[UPDATE COMMANDE]
+Id Commande       : 41
+Client       : Ahmed Ali
+Prix         : 50
+Paiement     : Cheque_bancaire
+Status       : Annulee
+Date         : 2026-04-20 19:39:08
+-----------------------------
+[DELETED COMMANDE]
+Id Commande       : 41
+Date         : 2026-04-20 19:39:13
+-----------------------------
+[NEW COMMANDE]
+Client       : Ahmed Ali
+Prix         : 152
+Paiement     : Cheque_bancaire
+Status       : Livree
+Date         : 2026-04-21 16:18:25
+-----------------------------
+[NEW COMMANDE]
+Client       : Ahmed Ali
+Prix         : 0
+Paiement     : Cheque_bancaire
+Status       : Livree
+Date         : 2026-04-21 16:27:39
+-----------------------------
+[UPDATE COMMANDE]
+Id Commande       : 4
+Client       : Ahmed Ali
+Prix         : 100
+Paiement     : Especes
+Status       : Livree
+Date         : 2026-04-28 11:32:51
+-----------------------------
+[UPDATE COMMANDE]
+Id Commande       : 13
+Client       : Ahmed Ali
+Prix         : 5
+Paiement     : Especes
+Status       : En_cours
+Date         : 2026-04-28 11:40:24
+-----------------------------
+[UPDATE COMMANDE]
+Id Commande       : 8
+Client       : Ahmed Ali
+Prix         : 50
+Paiement     : Especes
+Status       : Annulee
+Date         : 2026-04-28 11:44:01
+-----------------------------
+[DELETED COMMANDE]
+Id Commande       : 10
+Date         : 2026-04-28 11:44:16
+-----------------------------
+[DELETED COMMANDE]
+Id Commande       : 42
+Date         : 2026-04-28 11:44:28
+-----------------------------
+[UPDATE COMMANDE]
+Id Commande       : 12
+Client       : Ahmed Ali
+Prix         : 0
+Paiement     : Especes
+Status       : En_cours
+Date         : 2026-04-28 11:44:49
+-----------------------------
+[NEW COMMANDE]
+Client       : Ahmed Ali
+Prix         : 50
+Paiement     : Especes
+Status       : Livree
+Date         : 2026-04-28 11:45:06
+-----------------------------
+[UPDATE COMMANDE]
+Id Commande       : 12
+Client       : Ahmed Ali
+Prix         : 0
+Paiement     : Especes
+Status       : En_cours
+Date         : 2026-04-28 12:33:56
+-----------------------------
+[UPDATE COMMANDE]
+Id Commande       : 61
+Client       : Ahmed Ali
+Prix         : 50
+Paiement     : Especes
+Status       : Livree
+Date         : 2026-04-28 12:34:47
+-----------------------------
+[UPDATE COMMANDE]
+Id Commande       : 61
+Client       : Ahmed Ali
+Prix         : 50
+Paiement     : Especes
+Status       : En_cours
+Date         : 2026-04-28 12:35:45
+-----------------------------
+[UPDATE COMMANDE]
+Id Commande       : 12
+Client       : Ahmed Ali
+Prix         : 0
+Paiement     : Especes
+Status       : Livree
+Date         : 2026-04-28 13:38:17
+-----------------------------
+[UPDATE COMMANDE]
+Id Commande       : 8
+Client       : Ahmed Ali
+Prix         : 50
+Paiement     : Especes
+Status       : En_cours
+Date         : 2026-04-28 14:13:52
+-----------------------------
+[NEW COMMANDE]
+Client       : Ahmed Ali
+Prix         : 15
+Paiement     : Cheque_bancaire
+Status       : En_attente
+Date         : 2026-04-28 14:16:46
+-----------------------------
+[UPDATE COMMANDE]
+Id Commande       : 0
+Client       : Ahmed Ali
+Prix         : 0
+Paiement     : Cheque_bancaire
+Status       : En_attente
+Date         : 2026-04-28 14:16:56
+-----------------------------
+[UPDATE COMMANDE]
+Id Commande       : 12
+Client       : Ahmed Ali
+Prix         : 0
+Paiement     : Cheque_bancaire
+Status       : En_cours
+Date         : 2026-04-28 14:17:07
+-----------------------------
+[UPDATE COMMANDE]
+Id Commande       : 0
+Client       : Ahmed Ali
+Prix         : 0
+Paiement     : Carte_bancaire
+Status       : En_cours
+Date         : 2026-04-28 14:17:17
+-----------------------------
+[DELETED COMMANDE]
+Id Commande       : 12
+Date         : 2026-04-28 14:17:28
+-----------------------------
